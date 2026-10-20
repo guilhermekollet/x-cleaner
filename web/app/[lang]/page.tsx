@@ -84,11 +84,10 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
                 {d.hero.text}
               </p>
               <div className="rise mt-8 flex flex-wrap gap-3" style={after(240)}>
-                <a href={DOWNLOAD_URL} className={`${pill} bg-accent text-white`}>
+                <a href={DOWNLOAD_URL} className={`${pill} bg-pill text-pill-fg`}>
                   <DownloadIcon />
                   {d.download}
                 </a>
-                <StarButton label={d.hero.star} stars={stats?.stars ?? 0} lang={lang} />
                 <a href="#what" className={`${pill} border border-line text-fg`}>
                   {d.hero.see}
                 </a>
