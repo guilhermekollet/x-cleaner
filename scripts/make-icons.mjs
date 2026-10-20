@@ -9,9 +9,11 @@ import { dirname, join } from "node:path";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SS = 4; // supersampling factor
 
-const BG = [15, 15, 15]; // near-black, like the rest of the brand
-const ACCENT = [184, 164, 248]; // the soft violet used across the project
-const WHITE = [245, 245, 245];
+// White-on-black, following x.com's own palette: black background, light text
+// (#e7e9ea) and the secondary gray (#71767b) for depth.
+const BG = [0, 0, 0]; // x.com black
+const ACCENT = [113, 118, 123]; // #71767b, x.com's secondary gray
+const WHITE = [231, 233, 234]; // #e7e9ea, x.com's primary text color
 
 function blend(dst, i, [r, g, b], a) {
   dst[i] = Math.round(dst[i] * (1 - a) + r * a);
