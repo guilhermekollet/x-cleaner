@@ -107,8 +107,8 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {d.what.items.map((item, i) => (
                 <div key={i} data-reveal style={after((i % 3) * 80)} className={card}>
-                  <div className="mb-3 grid size-9 place-items-center rounded-full bg-accent-soft text-accent">
-                    <CheckIcon />
+                  <div className="mb-4 grid size-11 place-items-center rounded-full bg-accent-soft text-accent">
+                    <WhatIcon index={i} />
                   </div>
                   <h3 className="font-semibold">{item.title}</h3>
                   <p className="mt-1.5 text-sm leading-relaxed text-fg/60">{item.text}</p>
@@ -316,10 +316,47 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
   );
 }
 
-function CheckIcon() {
+// One icon per "What it does" card, in the order of `what.items` in the dictionary. Thin outlines
+// in the accent color, like the rest of the site's icons.
+const WHAT_ICONS: React.ReactNode[] = [
+  // Posts, replies and reposts: a trash can.
+  <>
+    <path d="M4 7h16" />
+    <path d="M9 7V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V7" />
+    <path d="M5.8 7l.9 12.2A2 2 0 0 0 8.7 21h6.6a2 2 0 0 0 2-1.8L18.2 7" />
+    <path d="M10 11v6M14 11v6" />
+  </>,
+  // Two ways to find them: a magnifier over a list.
+  <>
+    <path d="M4 6h11M4 10h7M4 14h4" />
+    <circle cx="15" cy="15" r="4" />
+    <path d="M18 18l3 3" />
+  </>,
+  // Filters: a funnel.
+  <path d="M3.5 5h17l-6.5 7.6V19l-4 2v-8.4z" />,
+  // A speed you control: a gauge with its needle.
+  <>
+    <path d="M4.3 17.5a9 9 0 1 1 15.4 0" />
+    <path d="M12 14l4.2-4.7" />
+    <circle cx="12" cy="14" r="1.4" />
+    <path d="M6.5 11.2l1.2.6M12 6.5V8M17.5 11.2l-1.2.6" />
+  </>,
+  // A test run first: a lab flask.
+  <>
+    <path d="M9 3h6M10 3v6.2L4.9 17.9A2 2 0 0 0 6.6 21h10.8a2 2 0 0 0 1.7-3.1L14 9.2V3" />
+    <path d="M7.4 15h9.2" />
+  </>,
+  // Pause, resume, continue: pause bars and a play triangle.
+  <>
+    <path d="M4.5 6v12M8.5 6v12" />
+    <path d="M13 6.3v11.4a.6.6 0 0 0 .9.5l7.3-5.7a.6.6 0 0 0 0-1l-7.3-5.7a.6.6 0 0 0-.9.5z" />
+  </>,
+];
+
+function WhatIcon({ index }: { index: number }) {
   return (
-    <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M20 6 9 17l-5-5" />
+    <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {WHAT_ICONS[index]}
     </svg>
   );
 }
