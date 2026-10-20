@@ -61,8 +61,6 @@ body.in-tab { margin: 40px auto; }
 body:not(.in-tab) .tab-only { display: none; }
 /* In the popup, choosing the archive hands the setup over to the tab. */
 body.archive-mode:not(.in-tab) .needs-setup { display: none; }
-.type-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; font-size: 13px; }
-.type-row input { flex: 1; min-width: 0; padding: 7px 10px; }
 
 svg { width: 18px; height: 18px; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
@@ -88,21 +86,23 @@ h1 { margin: 0; font-size: 17px; line-height: 1.1; font-weight: 800; letter-spac
 .pill-link svg { width: 15px; height: 15px; }
 .pill-link .count { padding: 2px 6px; border-radius: 999px; background: var(--fog); font-size: 11px; font-variant-numeric: tabular-nums; }
 
-/* EN | PT: a thumb slides under the chosen language. */
-.lang { position: relative; display: grid; grid-template-columns: 1fr 1fr; padding: 2px; border: 1px solid var(--line); border-radius: 999px; }
+/* Language: two round flags; a thin ring slides to the chosen one, the other stays grey. */
+.lang { position: relative; display: grid; grid-template-columns: 26px 26px; gap: 4px; }
 .lang .thumb {
-  position: absolute; top: 2px; bottom: 2px; left: 2px; width: calc(50% - 2px);
-  border-radius: 999px; background: var(--pill);
+  position: absolute; top: 0; left: 0; width: 26px; height: 26px;
+  border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--fg);
   /* Its slide comes from the view transition (its own group), not a CSS transition, so it moves once. */
   view-transition-name: lang-thumb;
 }
-.lang[data-lang="pt"] .thumb { translate: 100% 0; }
+.lang[data-lang="pt"] .thumb { translate: calc(100% + 4px) 0; }
 .lang button {
-  position: relative; border: 0; background: none; color: var(--muted); cursor: pointer;
-  font: 700 11px/1 "Geist", sans-serif; padding: 6px 9px; border-radius: 999px;
-  transition: color 0.25s;
+  position: relative; display: grid; place-items: center; width: 26px; height: 26px; padding: 0;
+  border: 0; border-radius: 50%; background: none; cursor: pointer;
 }
-.lang button[aria-pressed="true"] { color: var(--pill-fg); }
+.lang .flag { width: 18px; height: 18px; stroke: none; border-radius: 50%; box-shadow: 0 0 0 0.5px var(--line); filter: grayscale(1); opacity: 0.45; transition: filter 0.25s, opacity 0.25s; }
+.lang button:hover .flag { opacity: 0.75; }
+.lang button[aria-pressed="true"] .flag { filter: none; opacity: 1; }
+.lang button:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
 
 /* Switching language: the copy fades and un-blurs into the new language (View Transitions),
    while the thumb glides to its new place. */
@@ -208,7 +208,6 @@ input[type="text"], input[type="date"] {
   background: var(--bg); color: var(--fg); font: 13px "Geist", sans-serif;
 }
 input[type="text"]:focus, input[type="date"]:focus { outline: none; border-color: var(--fg); }
-#confirmWord { font-family: "Geist Mono", ui-monospace, monospace; letter-spacing: 0.08em; text-transform: uppercase; }
 
 /* Permanent-deletion confirmation, in X's amber. */
 .confirm {
@@ -226,6 +225,21 @@ input[type="text"]:focus, input[type="date"]:focus { outline: none; border-color
   content: ""; width: 5px; height: 9px; border: solid var(--bg); border-width: 0 2px 2px 0; rotate: 45deg; translate: 0 -1px;
 }
 .check input:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+/* "Test with 5 first": a switch on the first line of the confirmation. */
+.switch-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px solid var(--line); }
+.switch-row > span { display: flex; flex-direction: column; gap: 1px; font-size: 13px; }
+.switch-row small { font-size: 12px; color: var(--muted); }
+.switch-row input {
+  appearance: none; position: relative; flex-shrink: 0; width: 38px; height: 22px; margin: 0; border-radius: 999px;
+  background: var(--line); cursor: pointer; transition: background 0.2s;
+}
+.switch-row input::after {
+  content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%;
+  background: var(--bg); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25); transition: translate 0.2s;
+}
+.switch-row input:checked { background: var(--fg); }
+.switch-row input:checked::after { translate: 16px 0; }
+.switch-row input:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
 .check.quiet { margin-top: 12px; color: var(--muted); font-size: 12.5px; }
 .check.quiet small { opacity: 0.8; }
 

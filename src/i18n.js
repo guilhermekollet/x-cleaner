@@ -1,5 +1,5 @@
-// The popup's copy in English and Brazilian Portuguese, and the switch between them. The choice
-// is saved in the extension's storage; until there is one, it follows the browser's language.
+// The pages' copy in English and Brazilian Portuguese, and the switch between them. They open in
+// the browser's language; a flag the user picks is saved in the extension's storage and wins.
 // Static text is marked in the pages with data-i18n (text), data-i18n-placeholder and
 // data-i18n-title (tooltip and accessible name); the scripts ask for everything else through t().
 globalThis.XI18n = (() => {
@@ -34,7 +34,8 @@ globalThis.XI18n = (() => {
       "speed.cautious": "Cautious",
       "speed.normal": "Normal",
       "speed.fast": "Fast",
-      "test.skip": "Skip the test (I've tested before)",
+      "test.first": "Test with 5 first",
+      "test.firstHint": "Deletes only 5, so you can check your profile.",
       "testDone.title": "Test done",
       "testDone.text": "Test done: {n} deleted. Check your profile before deleting the rest.",
       "testDone.view": "View profile",
@@ -48,8 +49,6 @@ globalThis.XI18n = (() => {
       "filters.keep": "Keep these IDs",
       "filters.keepPh": "e.g. your pinned post",
       "confirm.ack": "I understand deletion is permanent — there's no undo.",
-      "confirm.type": "Type {word} to delete everything",
-      "confirm.word": "DELETE",
       "start.test": "Run a test with 5",
       "start.all": "Delete everything",
       resume: "Continue the previous run",
@@ -138,7 +137,8 @@ globalThis.XI18n = (() => {
       "speed.cautious": "Cauteloso",
       "speed.normal": "Normal",
       "speed.fast": "Rápido",
-      "test.skip": "Pular o teste (já testei antes)",
+      "test.first": "Testar com 5 primeiro",
+      "test.firstHint": "Apaga só 5, para você conferir no perfil.",
       "testDone.title": "Teste concluído",
       "testDone.text": "Teste concluído: {n} apagados. Confira no seu perfil antes de apagar o resto.",
       "testDone.view": "Ver perfil",
@@ -152,8 +152,6 @@ globalThis.XI18n = (() => {
       "filters.keep": "Manter estes IDs",
       "filters.keepPh": "ex.: seu post fixado",
       "confirm.ack": "Entendo que apagar é permanente — não tem como desfazer.",
-      "confirm.type": "Digite {word} para apagar tudo",
-      "confirm.word": "APAGAR",
       "start.test": "Fazer teste com 5",
       "start.all": "Apagar tudo",
       resume: "Continuar a rodada anterior",
@@ -216,7 +214,18 @@ globalThis.XI18n = (() => {
     },
   };
 
-  let lang = (navigator.language || "").toLowerCase().startsWith("pt") ? "pt" : "en";
+  // The browser's language: the first of the user's preferred languages that we have, then the
+  // browser's own UI language. Portuguese from Portugal reads fine in pt-BR.
+  function browserLang() {
+    const prefs = [...(navigator.languages || []), navigator.language, globalThis.chrome?.i18n?.getUILanguage?.()];
+    for (const l of prefs) {
+      const code = String(l || "").toLowerCase().slice(0, 2);
+      if (code === "pt" || code === "en") return code;
+    }
+    return "en";
+  }
+
+  let lang = browserLang();
   const listeners = [];
 
   function t(key, vars) {
@@ -317,7 +326,5 @@ globalThis.XI18n = (() => {
     onChange(fn) {
       listeners.push(fn);
     },
-    // Every word that unlocks a full run, in any language: typing either one works.
-    confirmWords: () => [dict.en["confirm.word"], dict.pt["confirm.word"]],
   };
 })();

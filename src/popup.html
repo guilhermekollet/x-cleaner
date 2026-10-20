@@ -31,10 +31,10 @@
           <span data-i18n="history.open"></span>
           <b id="historyCount" class="count hidden"></b>
         </button>
-        <div class="lang" role="group" aria-label="Language">
+        <div class="lang" role="group" aria-label="Language · Idioma">
           <span class="thumb" aria-hidden="true"></span>
-          <button type="button" data-lang="en">EN</button>
-          <button type="button" data-lang="pt">PT</button>
+          <button type="button" data-lang="en" aria-label="English" title="English"><svg class="flag" viewBox="0 0 24 24" aria-hidden="true"><clipPath id="clip-us"><circle cx="12" cy="12" r="12" /></clipPath><g clip-path="url(#clip-us)"><rect width="24" height="24" fill="#fff" /><path fill="#b22234" d="M0 0h24v1.85H0zM0 3.7h24v1.85H0zM0 7.4h24v1.85H0zM0 11.1h24v1.85H0zM0 14.8h24v1.85H0zM0 18.5h24v1.85H0zM0 22.15h24V24H0z" /><rect width="11" height="12.95" fill="#3c3b6e" /></g></svg></button>
+          <button type="button" data-lang="pt" aria-label="Português (Brasil)" title="Português (Brasil)"><svg class="flag" viewBox="0 0 24 24" aria-hidden="true"><clipPath id="clip-br"><circle cx="12" cy="12" r="12" /></clipPath><g clip-path="url(#clip-br)"><rect width="24" height="24" fill="#009c3b" /><path fill="#ffdf00" d="M12 4.2 21.6 12 12 19.8 2.4 12z" /><circle cx="12" cy="12" r="4.4" fill="#002776" /><path d="M7.8 11.1a9 9 0 0 1 8.3 2" stroke="#fff" stroke-width="0.9" fill="none" /></g></svg></button>
         </div>
       </div>
     </header>
@@ -105,7 +105,6 @@
           <label class="field"><span data-i18n="filters.until"></span><input type="date" id="f-until" /></label>
         </div>
         <label class="field"><span data-i18n="filters.keep"></span><input type="text" id="f-keep" data-i18n-placeholder="filters.keepPh" /></label>
-        <label class="check quiet"><input type="checkbox" id="skipTest" /><span data-i18n="test.skip"></span></label>
         <label class="check quiet"><input type="checkbox" id="resumePrev" /><span><span data-i18n="resume"></span> <small data-i18n="resumeHint"></small></span></label>
       </details>
 
@@ -116,8 +115,12 @@
       </p>
 
       <section class="confirm needs-setup">
+        <!-- The 5-item test is a choice, on until a test has passed once. -->
+        <label class="switch-row">
+          <span><b data-i18n="test.first"></b><small data-i18n="test.firstHint"></small></span>
+          <input type="checkbox" id="testFirst" role="switch" checked />
+        </label>
         <label class="check"><input type="checkbox" id="ack" /><span data-i18n="confirm.ack"></span></label>
-        <label id="typeRow" class="type-row hidden"><span id="typeLabel"></span><input type="text" id="confirmWord" autocomplete="off" spellcheck="false" /></label>
       </section>
 
       <button id="start" type="button" class="btn btn-danger btn-block btn-lg needs-setup" disabled></button>

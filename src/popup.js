@@ -19,12 +19,13 @@ let polling = null;
 let profilePath = null; // the signed-in profile (/handle), for "View profile" after a test
 let account = null; // the signed-in user id, for the history count
 
-// The test comes first: a run deletes 5 and stops, then offers the rest. It is skipped once a test
-// has passed (this session or before, remembered in storage) or when "Skip the test" is ticked.
+// "Test with 5 first" is a switch beside the confirmation: a test deletes 5 and stops, then offers
+// the rest. It starts on until a test has passed once (remembered in storage), and is always one
+// click away.
 const TESTED_KEY = "xcleaner.tested";
 let testPassed = false; // a test passed in this popup session: the full run continues from it
 let lastRunWasTest = false;
-const isTest = () => !testPassed && !$("skipTest").checked;
+const isTest = () => $("testFirst").checked;
 
 const sourceValue = () => document.querySelector('input[name="source"]:checked').value;
 const speedValue = () => document.querySelector('input[name="speed"]:checked').value;
@@ -45,7 +46,6 @@ XI18n.onChange(renderText);
 // Re-renders every piece of copy that depends on state, in the current language.
 function renderText() {
   $("accountText").textContent = t(accountKey);
-  $("typeLabel").textContent = t("confirm.type", { word: t("confirm.word") });
   $("start").textContent = isTest() ? t("start.test") : t("start.all");
   $("fullBanner").classList.toggle("hidden", !testPassed);
   renderSummary();
@@ -63,7 +63,7 @@ async function init() {
   renderText();
   await XI18n.load();
   try {
-    if ((await chrome.storage.local.get(TESTED_KEY))[TESTED_KEY]) $("skipTest").checked = true;
+    if ((await chrome.storage.local.get(TESTED_KEY))[TESTED_KEY]) $("testFirst").checked = false;
   } catch {}
   renderText();
 
@@ -148,25 +148,21 @@ function renderSummary() {
 }
 
 // --- Enabling Start --------------------------------------------------------------
-for (const id of ["ack", "confirmWord", "t-post", "t-reply", "t-repost", "t-like"]) $(id).addEventListener("input", refreshStart);
+for (const id of ["ack", "t-post", "t-reply", "t-repost", "t-like"]) $(id).addEventListener("input", refreshStart);
 for (const r of document.querySelectorAll('input[name="source"]')) r.addEventListener("change", refreshStart);
-$("skipTest").addEventListener("change", () => {
+$("testFirst").addEventListener("change", () => {
   renderText();
   refreshStart();
 });
 
-function confirmed() {
-  if (!$("ack").checked) return false;
-  if (isTest()) return true; // a 5-item test needs only the acknowledgement
-  return XI18n.confirmWords().includes($("confirmWord").value.trim().toUpperCase());
-}
+// One acknowledgement unlocks either run: the test or everything.
+const confirmed = () => $("ack").checked;
 
 function refreshStart() {
   const archive = sourceValue() === "archive";
   // In the toolbar popup the archive run is set up in a tab, so the popup keeps only the picker.
   document.body.classList.toggle("archive-mode", archive);
   $("archiveRow").classList.toggle("hidden", !archive);
-  $("typeRow").classList.toggle("hidden", isTest());
   $("likeHint").classList.toggle("hidden", !($("t-like").checked && !archive));
   const types = selectedTypes();
   const anyType = archive ? Object.values(types).some(Boolean) : types.post || types.reply || types.repost;
@@ -240,8 +236,11 @@ $("viewProfile").addEventListener("click", async () => {
 });
 $("continueFull").addEventListener("click", () => {
   testPassed = true;
+  $("testFirst").checked = false;
+  // The full run is confirmed on its own: the tick from the test doesn't carry over.
+  $("ack").checked = false;
   backToSetup();
-  $("confirmWord").focus();
+  $("ack").focus();
 });
 
 function enterRunning() {
