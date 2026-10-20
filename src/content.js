@@ -5,11 +5,13 @@
 (() => {
   let lastSnapshot = { running: false, idle: true };
   let finished = null;
+  // Archive items arrive in parts before "start" (see popup.js), since one message is capped.
+  let staged = [];
 
   function toConfig(raw) {
     return {
       source: raw.source,
-      archiveItems: raw.archiveItems || [],
+      archiveItems: raw.staged ? staged : raw.archiveItems || [],
       types: raw.types,
       keepIds: new Set(raw.keepIds || []),
       keyword: raw.keyword || null,
@@ -31,6 +33,7 @@
     } catch (e) {
       return { ok: false, error: "bad-config" };
     }
+    staged = []; // the run holds its own reference now
     XEngine.start(cfg, (snap) => {
       lastSnapshot = { ...snap, idle: false };
     }).then((final) => {
@@ -45,6 +48,11 @@
       switch (msg && msg.type) {
         case "ping":
           sendResponse({ ok: true, signedIn: isSignedIn(), account: account(), profile: profilePath() });
+          return;
+        case "stage":
+          if (msg.reset) staged = [];
+          for (const it of msg.items || []) staged.push(it);
+          sendResponse({ ok: true, count: staged.length });
           return;
         case "start":
           sendResponse(begin(msg.config));

@@ -92,6 +92,7 @@ function render() {
 
 function renderAccounts() {
   const box = $("accounts");
+  box.setAttribute("aria-label", t("history.account"));
   box.classList.toggle("hidden", accountList.length < 2);
   box.replaceChildren(
     ...accountList.map((a) => {

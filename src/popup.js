@@ -175,6 +175,17 @@ function refreshStart() {
 }
 
 // --- Running -------------------------------------------------------------------
+// Archive items go to the tab in parts: they carry the full text and media for the history, and
+// Chrome caps one message at 64 MB, which a very large archive would exceed in one go.
+const STAGE_SIZE = 5000;
+async function stageArchive(items) {
+  for (let i = 0; i < items.length; i += STAGE_SIZE) {
+    const res = await send("stage", { reset: i === 0, items: items.slice(i, i + STAGE_SIZE) });
+    if (!res || !res.ok) return false;
+  }
+  return true;
+}
+
 const parseKeep = () => ($("f-keep").value || "").split(/[\s,]+/).map((s) => s.trim()).filter(Boolean);
 
 $("start").addEventListener("click", async () => {
@@ -182,7 +193,7 @@ $("start").addEventListener("click", async () => {
   if (types.like && sourceValue() === "timeline") types.like = false; // likes need the archive
   const config = {
     source: sourceValue(),
-    archiveItems: sourceValue() === "archive" ? archiveItems : [],
+    staged: sourceValue() === "archive",
     types,
     keyword: $("f-keyword").value.trim() || null,
     since: $("f-since").value ? new Date($("f-since").value).toISOString() : null,
@@ -194,6 +205,7 @@ $("start").addEventListener("click", async () => {
     resume: $("resumePrev").checked || testPassed,
   };
   lastRunWasTest = isTest();
+  if (config.staged && !(await stageArchive(archiveItems))) return setAccount("out", "run.couldNotStart");
   const res = await send("start", { config });
   if (!res || !res.ok) return setAccount("out", res && res.error === "already-running" ? "run.alreadyRunning" : "run.couldNotStart");
   enterRunning();
