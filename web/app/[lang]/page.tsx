@@ -13,7 +13,7 @@ const DOWNLOAD_URL = `${REPO_URL}/releases/latest/download/x-cleaner.zip`;
 
 const after = (ms: number) => ({ "--d": `${ms}ms` }) as React.CSSProperties;
 const pill = "press inline-flex items-center justify-center gap-2 rounded-full px-5 h-11 text-sm font-semibold whitespace-nowrap";
-const sectionTitle = "text-[clamp(26px,4vw,38px)] leading-[1.15] font-serif tracking-tight";
+const sectionTitle = "text-[clamp(28px,4vw,40px)] leading-[1.1] font-bold tracking-[-0.025em]";
 const card = "rounded-2xl border border-line bg-surface p-6";
 
 // Stars and forks, read once at build time. The site is static, so they are as fresh as the last
@@ -56,7 +56,7 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
       <RevealObserver />
 
       {/* Header: just the mark and the download. Language and theme live in the footer. */}
-      <header className="sticky top-0 z-50 border-b border-line/60 bg-bg/80 backdrop-blur">
+      <header className="sticky top-0 z-50 bg-bg/80 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
           <a href="#top" className="flex items-center gap-2 font-semibold">
             <Mark className="size-7 text-fg" />
@@ -72,15 +72,13 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
       <main id="top">
         {/* Hero */}
         <section className="relative overflow-hidden">
-          <div className="dither pointer-events-none absolute inset-y-0 left-0 w-24 opacity-40 md:w-40" aria-hidden="true" />
-          <div className="dither pointer-events-none absolute inset-y-0 right-0 w-24 opacity-40 md:w-40" aria-hidden="true" />
           <div className="mx-auto grid max-w-6xl items-center gap-12 px-5 py-20 md:grid-cols-2 md:py-28">
             <div>
               <p className="rise inline-flex items-center gap-2 rounded-full border border-line px-3 py-1 text-xs font-medium text-fg/60" style={after(0)}>
                 <Mark className="size-4 text-accent" />
                 {d.hero.eyebrow}
               </p>
-              <h1 className="rise mt-5 font-serif text-[clamp(38px,6.5vw,64px)] leading-[1.05] tracking-tight" style={after(80)}>
+              <h1 className="rise mt-5 text-[clamp(40px,6.5vw,68px)] leading-[1.02] font-extrabold tracking-[-0.04em]" style={after(80)}>
                 {d.hero.title}
               </h1>
               <p className="rise mt-5 max-w-[30rem] text-[18px] leading-relaxed text-fg/70" style={after(160)}>
@@ -125,7 +123,7 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
           <div className="mx-auto max-w-5xl px-5">
             <SectionHead title={d.reach.title} text={d.reach.text} />
             <div data-reveal className="mx-auto max-w-2xl rounded-2xl border border-line bg-surface p-7">
-              <h3 className="font-serif text-2xl tracking-tight">{d.reach.archiveTitle}</h3>
+              <h3 className="text-2xl font-bold tracking-[-0.02em]">{d.reach.archiveTitle}</h3>
               <p className="mt-3 leading-relaxed text-fg/70">{d.reach.archiveText}</p>
               <p className="mt-5 flex items-start gap-2.5 rounded-xl border border-danger/30 bg-danger/5 p-4 text-sm text-fg/80">
                 <WarnIcon />

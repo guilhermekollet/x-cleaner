@@ -65,9 +65,8 @@
   --color-accent-soft: var(--accent-soft);
   --color-danger: var(--danger);
   --color-ok: var(--ok);
-  --font-sans: var(--font-instrument-sans), ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-serif: var(--font-instrument-serif), Georgia, "Times New Roman", serif;
-  --font-mono: var(--font-jetbrains-mono), ui-monospace, "SF Mono", Menlo, monospace;
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
 }
 
 html {
@@ -88,21 +87,6 @@ body {
 /* The 404 page carries its copy in both languages and shows only the visitor's. */
 :root:not(:lang(pt)) [data-copy="pt"],
 :root:is(:lang(pt)) [data-copy="en"] { display: none; }
-
-/* Dot texture on the sides of the hero. */
-.dither {
-  background-image: radial-gradient(circle, var(--color-accent) 1.4px, transparent 1.6px);
-  background-size: 15px 15px;
-  animation: drift 10s linear infinite, breathe 6s ease-in-out infinite;
-}
-@keyframes drift {
-  from { background-position: 0 0; }
-  to { background-position: 60px 30px; }
-}
-@keyframes breathe {
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 0.6; }
-}
 
 /* Hero entrance: each piece rises and comes into focus, in sequence (--d is the delay). */
 @keyframes rise {
@@ -151,7 +135,7 @@ details[open] > div { animation: rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .rise, .dither, .sweep, .speck, details[open] > div { animation: none; }
+  .rise, .sweep, .speck, details[open] > div { animation: none; }
   .reveal-ready [data-reveal] { opacity: 1; transform: none; }
   .press { transition: none; }
 }
