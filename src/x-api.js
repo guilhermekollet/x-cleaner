@@ -69,7 +69,6 @@ globalThis.XApi = (() => {
       "UserMedia",
       "Likes",
       "DeleteTweet",
-      "DeleteRetweet",
       "UnfavoriteTweet",
     ];
     const ops = {};
@@ -197,15 +196,12 @@ globalThis.XApi = (() => {
       const { items, bottom } = collect(res.body, me);
       return { ...res, items, bottom };
     },
-    // Deletes one of the user's own posts (or replies).
+    // Deletes one of the user's own posts, replies or reposts. A repost is deleted by its own id
+    // (the one the archive and the timeline give us); DeleteRetweet would need the original
+    // post's id instead, which the archive doesn't carry.
     async deletePost(id) {
       const res = await mutate("DeleteTweet", { tweet_id: id, dark_request: false });
       return classify(res, res.body?.data?.delete_tweet);
-    },
-    // Undoes one of the user's reposts.
-    async deleteRepost(id) {
-      const res = await mutate("DeleteRetweet", { source_tweet_id: id, dark_request: false });
-      return classify(res, res.body?.data?.unretweet);
     },
     // Removes one like.
     async removeLike(id) {
