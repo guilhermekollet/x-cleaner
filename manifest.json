@@ -21,7 +21,8 @@
     }
   },
   "permissions": [
-    "storage"
+    "storage",
+    "unlimitedStorage"
   ],
   "host_permissions": [
     "https://x.com/*",
@@ -34,6 +35,7 @@
         "https://twitter.com/*"
       ],
       "js": [
+        "src/history.js",
         "src/x-api.js",
         "src/archive.js",
         "src/engine.js",

@@ -18,6 +18,7 @@
       speed: XEngine.SPEEDS[raw.speed] || XEngine.SPEEDS.normal,
       limit: raw.limit === "all" ? Infinity : Number(raw.limit) || Infinity,
       resume: !!raw.resume,
+      handle: handle(),
     };
   }
 
@@ -86,6 +87,10 @@
   // open it after a test run.
   function profilePath() {
     return document.querySelector('a[data-testid="AppTabBar_Profile_Link"]')?.getAttribute("href") || null;
+  }
+  // The signed-in @handle, kept with the history so it shows which account it belongs to.
+  function handle() {
+    return profilePath()?.replace(/^\//, "") || null;
   }
   function account() {
     try {

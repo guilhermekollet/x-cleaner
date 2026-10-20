@@ -7,6 +7,7 @@ import { deflateRawSync } from "node:zlib";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
+require("../src/history.js"); // the archive reader uses its tweet-details helper
 const XArchive = require("../src/archive.js");
 const { parseDataFile, normalize, dedupe } = XArchive._internals;
 
@@ -26,6 +27,46 @@ test("normalize classifies posts, replies and reposts", () => {
   assert.equal(normalize({ id_str: "2", full_text: "hi", in_reply_to_status_id_str: "9" }).kind, "reply");
   assert.equal(normalize({ id_str: "3", full_text: "RT @x: hi" }).kind, "repost");
   assert.equal(normalize({ tweetId: "4" }).kind, "like");
+});
+
+test("normalize keeps the full text, media, links and the post replied to", () => {
+  const long = "x".repeat(300) + " &amp; more";
+  const item = normalize({
+    id_str: "7",
+    full_text: long,
+    in_reply_to_status_id_str: "6",
+    in_reply_to_screen_name: "friend",
+    entities: { urls: [{ url: "https://t.co/a", expanded_url: "https://example.com/a" }] },
+    extended_entities: {
+      media: [
+        { type: "photo", media_url_https: "https://pbs.twimg.com/media/p.jpg" },
+        {
+          type: "video",
+          media_url_https: "https://pbs.twimg.com/thumb.jpg",
+          video_info: {
+            variants: [
+              { content_type: "video/mp4", bitrate: 256000, url: "https://video.twimg.com/low.mp4" },
+              { content_type: "application/x-mpegURL", url: "https://video.twimg.com/v.m3u8" },
+              { content_type: "video/mp4", bitrate: 2176000, url: "https://video.twimg.com/high.mp4" },
+            ],
+          },
+        },
+      ],
+    },
+  });
+  assert.equal(item.text, "x".repeat(300) + " & more");
+  assert.deepEqual(item.media, [
+    { type: "photo", url: "https://pbs.twimg.com/media/p.jpg" },
+    { type: "video", url: "https://video.twimg.com/high.mp4" },
+  ]);
+  assert.deepEqual(item.links, ["https://example.com/a"]);
+  assert.deepEqual(item.replyTo, { id: "6", user: "friend" });
+});
+
+test("normalize keeps a like's text and link", () => {
+  const like = normalize({ tweetId: "8", fullText: "liked this", expandedUrl: "https://twitter.com/i/web/status/8" });
+  assert.equal(like.text, "liked this");
+  assert.equal(like.url, "https://twitter.com/i/web/status/8");
 });
 
 test("dedupe removes repeats and sorts newest first", () => {

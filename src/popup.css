@@ -76,6 +76,18 @@ svg { width: 18px; height: 18px; flex-shrink: 0; fill: none; stroke: currentColo
 h1 { margin: 0; font-size: 17px; line-height: 1.1; font-weight: 800; letter-spacing: -0.02em; }
 .tagline { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
 
+.top-actions { display: flex; align-items: center; gap: 6px; }
+/* History: a quiet outline pill beside the language switch, with this account's count. */
+.pill-link {
+  display: inline-flex; align-items: center; gap: 5px; height: 29px; padding: 0 10px 0 8px;
+  border: 1px solid var(--line); border-radius: 999px; background: none; color: var(--fg); cursor: pointer;
+  font: 600 12px/1 "Geist", sans-serif; transition: background 0.15s;
+}
+.pill-link:hover { background: var(--mist); }
+.pill-link:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+.pill-link svg { width: 15px; height: 15px; }
+.pill-link .count { padding: 2px 6px; border-radius: 999px; background: var(--fog); font-size: 11px; font-variant-numeric: tabular-nums; }
+
 /* EN | PT: a thumb slides under the chosen language. */
 .lang { position: relative; display: grid; grid-template-columns: 1fr 1fr; padding: 2px; border: 1px solid var(--line); border-radius: 999px; }
 .lang .thumb {

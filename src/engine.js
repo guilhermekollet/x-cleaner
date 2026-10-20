@@ -2,7 +2,8 @@
 // and it drives XApi one action at a time so the whole run stays well under the
 // limits x.com enforces. It reports progress through a callback and saves its
 // progress to chrome.storage, so a run that is paused, stopped, or interrupted can
-// pick up where it left off.
+// pick up where it left off. Every item it deletes goes into the history (XHistory) as
+// soon as it is gone, so the backup never trails the deletions.
 globalThis.XEngine = (() => {
   const SPEEDS = {
     cautious: { minDelay: 2500, maxDelay: 4500, batchSize: 50, batchPause: 90000 },
@@ -51,7 +52,7 @@ globalThis.XEngine = (() => {
   function matchesFilters(item, cfg) {
     if (!cfg.types[item.kind]) return false;
     if (cfg.keepIds.has(item.id)) return false;
-    if (cfg.keyword && !item.text.toLowerCase().includes(cfg.keyword.toLowerCase())) return false;
+    if (cfg.keyword && !(item.text || "").toLowerCase().includes(cfg.keyword.toLowerCase())) return false;
     if (cfg.since || cfg.until) {
       const d = item.createdAt ? new Date(item.createdAt) : null;
       if (d) {
@@ -78,6 +79,7 @@ globalThis.XEngine = (() => {
       case "ok":
         state.deleted++;
         state.processed.add(item.id);
+        await remember(item);
         break;
       case "gone":
         state.gone++;
@@ -97,6 +99,16 @@ globalThis.XEngine = (() => {
         state.processed.add(item.id);
     }
     return res.outcome;
+  }
+
+  // Adds a deleted item to the history. A storage failure must not stop the run: the post is
+  // already gone, so it is counted and the run goes on.
+  async function remember(item) {
+    try {
+      await XHistory.append(state.me, [XHistory.fromItem(item, { source: state.source })], { handle: state.handle });
+    } catch {
+      state.historyErrors++;
+    }
   }
 
   async function waitForReset(rate, report) {
@@ -240,6 +252,7 @@ globalThis.XEngine = (() => {
       batchUntil: state.batchUntil,
       fatal: state.fatal,
       running: state.running,
+      historyErrors: state.historyErrors,
     };
   }
 
@@ -268,6 +281,7 @@ globalThis.XEngine = (() => {
       control = { paused: false, stopped: false };
       state = {
         me,
+        handle: cfg.handle || null,
         source: cfg.source,
         deleted: 0,
         gone: 0,
@@ -281,6 +295,7 @@ globalThis.XEngine = (() => {
         lastBatchAt: -1,
         fatal: null,
         running: true,
+        historyErrors: 0,
       };
       if (!cfg.resume) await clearProcessed(me);
 

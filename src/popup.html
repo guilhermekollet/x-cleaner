@@ -24,10 +24,18 @@
           <p class="tagline" data-i18n="tagline"></p>
         </div>
       </div>
-      <div class="lang" role="group" aria-label="Language">
-        <span class="thumb" aria-hidden="true"></span>
-        <button type="button" data-lang="en">EN</button>
-        <button type="button" data-lang="pt">PT</button>
+      <div class="top-actions">
+        <!-- The history opens in a tab of its own: it needs more room than the popup's 600px. -->
+        <button id="openHistory" type="button" class="pill-link" data-i18n-title="history.openLabel">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 12a8.5 8.5 0 1 0 2.5-6" /><path d="M3.5 4v4h4M12 7.5V12l3 2" /></svg>
+          <span data-i18n="history.open"></span>
+          <b id="historyCount" class="count hidden"></b>
+        </button>
+        <div class="lang" role="group" aria-label="Language">
+          <span class="thumb" aria-hidden="true"></span>
+          <button type="button" data-lang="en">EN</button>
+          <button type="button" data-lang="pt">PT</button>
+        </div>
       </div>
     </header>
 
@@ -142,6 +150,7 @@
       <a href="https://github.com/guilhermekollet/x-cleaner" target="_blank" rel="noopener" data-i18n="foot.source"></a>
     </footer>
 
+    <script src="history.js"></script>
     <script src="archive.js"></script>
     <script src="i18n.js"></script>
     <script src="popup.js"></script>

@@ -128,10 +128,27 @@ globalThis.XApi = (() => {
     return parseRate(r, await r.json().catch(() => null));
   }
 
+  function noteText(tweet) {
+    return tweet.note_tweet?.note_tweet_results?.result?.text || null;
+  }
+
+  // The post a repost points at: its id, author and full text, for the history.
+  function original(result) {
+    const t = result?.__typename === "TweetWithVisibilityResults" ? result.tweet : result;
+    if (!t || !t.rest_id) return null;
+    const user = t.core?.user_results?.result;
+    return {
+      id: t.rest_id,
+      user: user?.core?.screen_name || user?.legacy?.screen_name || null,
+      text: noteText(t) || XHistory.details(t.legacy || {}).text || null,
+    };
+  }
+
   // Walks a timeline response, collecting the signed-in user's own entries and the
   // bottom cursor. Each item is tagged so the engine can filter by type.
   function collect(body, me) {
     const items = [];
+    const seen = new Set(); // a wrapped tweet (TweetWithVisibilityResults) is reached twice
     let bottom = null;
     (function walk(node) {
       if (!node || typeof node !== "object") return;
@@ -139,14 +156,20 @@ globalThis.XApi = (() => {
       if (node.cursorType === "Bottom" && node.value) bottom = node.value;
       const tweet = node.__typename === "TweetWithVisibilityResults" ? node.tweet : node;
       const legacy = tweet && tweet.legacy;
-      if (tweet && tweet.rest_id && legacy && legacy.user_id_str === me && legacy.created_at) {
+      if (tweet && tweet.rest_id && legacy && legacy.user_id_str === me && legacy.created_at && !seen.has(tweet.rest_id)) {
+        seen.add(tweet.rest_id);
         const isRepost = !!legacy.retweeted_status_result;
-        const isReply = !!legacy.in_reply_to_status_id_str;
+        const { text, media, links, replyTo } = XHistory.details(legacy);
         items.push({
           id: tweet.rest_id,
           createdAt: legacy.created_at,
-          kind: isRepost ? "repost" : isReply ? "reply" : "post",
-          text: (legacy.full_text || "").slice(0, 80),
+          kind: isRepost ? "repost" : replyTo ? "reply" : "post",
+          // Posts over 280 characters keep their full text in note_tweet; full_text is cut.
+          text: noteText(tweet) || text,
+          media,
+          links,
+          replyTo,
+          repostOf: isRepost ? original(legacy.retweeted_status_result.result) : null,
         });
       }
       for (const k in node) walk(node[k]);
