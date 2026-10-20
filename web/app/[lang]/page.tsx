@@ -176,17 +176,30 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
         </section>
 
         {/* Limitations */}
+        {/* Set apart from the feature grids: a heading on the left and one panel of warnings,
+            each on its own row, in X's amber. */}
         <section className="border-t border-line/60 py-20 md:py-28">
-          <div className="mx-auto max-w-5xl px-5">
-            <SectionHead title={d.limits.title} />
-            <div className="grid gap-4 md:grid-cols-3">
-              {d.limits.items.map((item, i) => (
-                <div key={i} data-reveal style={after(i * 80)} className={card}>
-                  <h3 className="font-semibold">{item.title}</h3>
-                  <p className="mt-1.5 text-sm leading-relaxed text-fg/60">{item.text}</p>
-                </div>
-              ))}
+          <div className="mx-auto grid max-w-5xl gap-10 px-5 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] md:gap-16">
+            <div data-reveal className="md:pt-2">
+              <span className="inline-grid size-11 place-items-center rounded-full bg-warn-soft text-warn">
+                <LimitIcon index={-1} />
+              </span>
+              <h2 className={`${sectionTitle} mt-5`}>{d.limits.title}</h2>
+              <p className="mt-4 max-w-sm text-[17px] leading-relaxed text-fg/60">{d.limits.text}</p>
             </div>
+            <ul data-reveal style={after(80)} className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface">
+              {d.limits.items.map((item, i) => (
+                <li key={i} className="flex gap-4 p-6">
+                  <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-warn-soft text-warn">
+                    <LimitIcon index={i} />
+                  </span>
+                  <div>
+                    <h3 className="font-semibold">{item.title}</h3>
+                    <p className="mt-1.5 text-sm leading-relaxed text-fg/60">{item.text}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
           </div>
         </section>
 
@@ -352,6 +365,43 @@ const WHAT_ICONS: React.ReactNode[] = [
     <path d="M13 6.3v11.4a.6.6 0 0 0 .9.5l7.3-5.7a.6.6 0 0 0 0-1l-7.3-5.7a.6.6 0 0 0-.9.5z" />
   </>,
 ];
+
+// Icons for the limitations, in the order of `limits.items`; index -1 is the section's own mark.
+const LIMIT_ICONS: Record<number, React.ReactNode> = {
+  // The section: a warning triangle.
+  [-1]: <path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" />,
+  // It can break when X changes: refresh arrows.
+  0: (
+    <>
+      <path d="M20 11a8 8 0 0 0-14.7-4.4L4 8" />
+      <path d="M4 3.5V8h4.5" />
+      <path d="M4 13a8 8 0 0 0 14.7 4.4L20 16" />
+      <path d="M20 20.5V16h-4.5" />
+    </>
+  ),
+  // Pace matters: a stopwatch.
+  1: (
+    <>
+      <circle cx="12" cy="13.5" r="7.5" />
+      <path d="M12 9.5v4l2.5 2M10 2.5h4M19 6.5l-1.3 1.3" />
+    </>
+  ),
+  // A grey area in X's terms: a document with an exclamation mark.
+  2: (
+    <>
+      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+      <path d="M14 3v5h5M12 11.5v3.5M12 18h.01" />
+    </>
+  ),
+};
+
+function LimitIcon({ index }: { index: number }) {
+  return (
+    <svg viewBox="0 0 24 24" className="size-[22px]" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {LIMIT_ICONS[index]}
+    </svg>
+  );
+}
 
 function WhatIcon({ index }: { index: number }) {
   return (

@@ -102,6 +102,7 @@ const en = {
   },
   limits: {
     title: "Honest limitations",
+    text: "Worth knowing before you start. None of these is a surprise later.",
     items: [
       { title: "It can break when X changes", text: "It follows the live site's internal API, which absorbs most changes, but a larger one can still stop it. If that happens, open an issue." },
       { title: "Pace matters", text: "Deleting too fast can make X slow you down or ask for a verification. The presets are deliberately conservative." },
@@ -228,6 +229,7 @@ const pt: typeof en = {
   },
   limits: {
     title: "Limitações honestas",
+    text: "Vale saber antes de começar, para nada disso virar surpresa depois.",
     items: [
       { title: "Pode quebrar quando o X muda", text: "Ele segue a API interna do site ao vivo, o que absorve a maioria das mudanças, mas uma maior ainda pode parar tudo. Se acontecer, abra uma issue." },
       { title: "O ritmo importa", text: "Apagar rápido demais pode fazer o X te frear ou pedir verificação. Os presets são propositalmente conservadores." },
