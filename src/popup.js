@@ -215,6 +215,7 @@ function render(s, done) {
   $("p-deleted").textContent = fmt.format(s.deleted || 0);
   $("p-gone").textContent = fmt.format(s.gone || 0);
   $("p-failures").textContent = fmt.format(s.failures || 0);
+  $("p-failures").classList.toggle("has", (s.failures || 0) > 0);
 
   // Progress counts this run only, so a resumed run starts from zero against what is left.
   const acted = (s.deleted || 0) + (s.gone || 0) + (s.failures || 0);
