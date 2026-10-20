@@ -31,10 +31,10 @@
           <span data-i18n="history.open"></span>
           <b id="historyCount" class="count hidden"></b>
         </button>
-        <div class="lang" role="group" aria-label="Language">
+        <div class="lang" role="group" aria-label="Language · Idioma">
           <span class="thumb" aria-hidden="true"></span>
-          <button type="button" data-lang="en">EN</button>
-          <button type="button" data-lang="pt">PT</button>
+          <button type="button" data-lang="en" aria-label="English" title="English"><svg class="flag" viewBox="0 0 24 24" aria-hidden="true"><clipPath id="clip-us"><circle cx="12" cy="12" r="12" /></clipPath><g clip-path="url(#clip-us)"><rect width="24" height="24" fill="#fff" /><path fill="#b22234" d="M0 0h24v1.85H0zM0 3.7h24v1.85H0zM0 7.4h24v1.85H0zM0 11.1h24v1.85H0zM0 14.8h24v1.85H0zM0 18.5h24v1.85H0zM0 22.15h24V24H0z" /><rect width="11" height="12.95" fill="#3c3b6e" /></g></svg></button>
+          <button type="button" data-lang="pt" aria-label="Português (Brasil)" title="Português (Brasil)"><svg class="flag" viewBox="0 0 24 24" aria-hidden="true"><clipPath id="clip-br"><circle cx="12" cy="12" r="12" /></clipPath><g clip-path="url(#clip-br)"><rect width="24" height="24" fill="#009c3b" /><path fill="#ffdf00" d="M12 4.2 21.6 12 12 19.8 2.4 12z" /><circle cx="12" cy="12" r="4.4" fill="#002776" /><path d="M7.8 11.1a9 9 0 0 1 8.3 2" stroke="#fff" stroke-width="0.9" fill="none" /></g></svg></button>
         </div>
       </div>
     </header>
@@ -90,10 +90,12 @@
 
       <section class="block needs-setup">
         <h2 data-i18n="speed.title"></h2>
+        <!-- Pace icons: Phosphor Icons, fill weight (MIT License, Copyright (c) 2023 Phosphor Icons,
+             https://github.com/phosphor-icons/core). -->
         <div class="segmented" role="radiogroup">
-          <label><input type="radio" name="speed" value="cautious" /><span data-i18n="speed.cautious"></span></label>
-          <label><input type="radio" name="speed" value="normal" checked /><span data-i18n="speed.normal"></span></label>
-          <label><input type="radio" name="speed" value="fast" /><span data-i18n="speed.fast"></span></label>
+          <label><input type="radio" name="speed" value="cautious" /><span class="seg"><svg viewBox="0 0 256 256" aria-hidden="true"><path d="M120,48a32,32,0,1,1,32,32A32,32,0,0,1,120,48Zm88,88c-28.64,0-41.81-13.3-55.75-27.37-3.53-3.57-7.18-7.26-11-10.58-37-32.14-96.22,22.73-98.72,25.08a8,8,0,0,0,10.95,11.66A163.88,163.88,0,0,1,84,113c13.78-7.38,25.39-10.23,34.7-8.58L64.66,228.81a8,8,0,0,0,4.15,10.52A7.84,7.84,0,0,0,72,240a8,8,0,0,0,7.34-4.81l33.59-77.27L144,180.12V232a8,8,0,0,0,16,0V176a8,8,0,0,0-3.35-6.51l-37.2-26.57L132.88,112c2.64,2.44,5.26,5.07,8,7.84C155.05,134.19,172.69,152,208,152a8,8,0,0,0,0-16Z" /></svg><span data-i18n="speed.cautious"></span></span></label>
+          <label><input type="radio" name="speed" value="normal" checked /><span class="seg"><svg viewBox="0 0 256 256" aria-hidden="true"><path d="M120,56a32,32,0,1,1,32,32A32,32,0,0,1,120,56Zm103.28,74.08a8,8,0,0,0-10.6-4c-.25.12-26.71,10.72-72.18-20.19-52.29-35.54-88-7.77-89.51-6.57a8,8,0,1,0,10,12.48c.26-.21,25.12-19.5,64.07,3.27-4.25,13.35-12.76,31.82-25.25,47-18.56,22.48-41.11,32.56-67,30A8,8,0,0,0,31.2,208a92.29,92.29,0,0,0,9.34.47c27.38,0,52-12.38,71.63-36.18.57-.69,1.14-1.4,1.69-2.1C133.31,175.29,168,190.3,168,232a8,8,0,0,0,16,0c0-24.65-10.08-45.35-29.15-59.86a104.29,104.29,0,0,0-31.31-15.81A169.31,169.31,0,0,0,139,124c26.14,16.09,46.84,20,60.69,20,12.18,0,19.06-3,19.67-3.28A8,8,0,0,0,223.28,130.08Z" /></svg><span data-i18n="speed.normal"></span></span></label>
+          <label><input type="radio" name="speed" value="fast" /><span class="seg"><svg viewBox="0 0 256 256" aria-hidden="true"><path d="M213.85,125.46l-112,120a8,8,0,0,1-13.69-7l14.66-73.33L45.19,143.49a8,8,0,0,1-3-13l112-120a8,8,0,0,1,13.69,7L153.18,90.9l57.63,21.61a8,8,0,0,1,3,12.95Z" /></svg><span data-i18n="speed.fast"></span></span></label>
         </div>
       </section>
 
@@ -105,7 +107,6 @@
           <label class="field"><span data-i18n="filters.until"></span><input type="date" id="f-until" /></label>
         </div>
         <label class="field"><span data-i18n="filters.keep"></span><input type="text" id="f-keep" data-i18n-placeholder="filters.keepPh" /></label>
-        <label class="check quiet"><input type="checkbox" id="skipTest" /><span data-i18n="test.skip"></span></label>
         <label class="check quiet"><input type="checkbox" id="resumePrev" /><span><span data-i18n="resume"></span> <small data-i18n="resumeHint"></small></span></label>
       </details>
 
@@ -116,8 +117,12 @@
       </p>
 
       <section class="confirm needs-setup">
+        <!-- The 5-item test is a choice, on until a test has passed once. -->
+        <label class="switch-row">
+          <span><b data-i18n="test.first"></b><small data-i18n="test.firstHint"></small></span>
+          <input type="checkbox" id="testFirst" role="switch" checked />
+        </label>
         <label class="check"><input type="checkbox" id="ack" /><span data-i18n="confirm.ack"></span></label>
-        <label id="typeRow" class="type-row hidden"><span id="typeLabel"></span><input type="text" id="confirmWord" autocomplete="off" spellcheck="false" /></label>
       </section>
 
       <button id="start" type="button" class="btn btn-danger btn-block btn-lg needs-setup" disabled></button>
@@ -140,15 +145,6 @@
         <button id="continueFull" type="button" class="btn btn-solid grow hidden" data-i18n="testDone.continue"></button>
       </div>
     </section>
-
-    <footer class="foot">
-      <span class="private">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2.5" /><path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3" /></svg>
-        <span data-i18n="foot.private"></span>
-      </span>
-      ·
-      <a href="https://github.com/guilhermekollet/x-cleaner" target="_blank" rel="noopener" data-i18n="foot.source"></a>
-    </footer>
 
     <script src="history.js"></script>
     <script src="archive.js"></script>

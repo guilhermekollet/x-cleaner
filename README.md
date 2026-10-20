@@ -46,7 +46,8 @@ you are signed in to. Nothing is uploaded, and you never hand your account to a 
 - **Filters**: by type, by keyword, by date range, and a keep-list of IDs (for your pinned post, say).
 - **Speed you control**: Cautious, Normal or Fast presets, each a trade of pace against the chance X
   slows you down. It reads X's own rate-limit signal and waits automatically when told to.
-- **A test run** that stops after 5, so you can confirm it deletes the right things first.
+- **An optional test run** that stops after 5, so you can confirm it deletes the right things
+  first: a switch beside the confirmation, on until a test has passed once.
 - **Pause, resume and stop**, and a saved progress list so an interrupted run continues where it
   left off instead of starting over.
 - **A history of what it deleted, and a backup of it.** Every post, reply, repost or like it
@@ -54,8 +55,8 @@ you are signed in to. Nothing is uploaded, and you never hand your account to a 
   date and the deletion date. Open **History** at the top of the popup to browse it (newest first,
   with search and a filter by type), download it as **JSON** or **CSV**, or clear it. It is kept
   per account, only in this browser.
-- **English and Portuguese (Brazil)**: switch at the top of the popup; it starts in your browser's
-  language and remembers your choice. Light and dark follow your system.
+- **English and Portuguese (Brazil)**: it opens in your browser's language; the round flags at the
+  top switch it, and the choice is remembered. Light and dark follow your system.
 
 ## Install
 
@@ -75,9 +76,10 @@ The X Cleaner icon appears in the toolbar.
 1. Open **x.com** in a tab and sign in.
 2. Click the X Cleaner icon.
 3. Choose what to read (recent timeline, or your archive file) and what to delete.
-4. Leave **Test run** on, tick **I understand deletion is permanent**, and click **Start**.
-5. Check that the 5 it removed were the right ones. Then turn **Test run** off, type `DELETE` to
-   confirm, and start again.
+4. Leave **Test with 5 first** on, tick **I understand deletion is permanent**, and click **Run a
+   test with 5**.
+5. Check that the 5 it removed were the right ones, then click **Continue and delete the rest** (or
+   turn **Test with 5 first** off), tick the confirmation again and click **Delete everything**.
 
 Keep the x.com tab open while it runs; you can close the popup, and reopen it to see progress. A full
 archive of many thousands of posts takes a few hours because of the safety pauses.
