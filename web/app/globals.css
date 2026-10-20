@@ -1,0 +1,157 @@
+@import "tailwindcss";
+
+/* Colors that change with the theme. The palette follows x.com: black and white, with X's blue
+   as the one accent. */
+:root {
+  color-scheme: light;
+  --bg: #ffffff;
+  --fg: #0f1419;
+  --surface: #ffffff;
+  --mist: #f7f9f9;
+  --fog: #eff3f4;
+  --line: #cfd9de;
+  --pill: #0f1419;
+  --pill-fg: #ffffff;
+  --accent: #1d9bf0;
+  --accent-soft: #e8f5fe;
+  --danger: #f4212e;
+  --ok: #00a67e;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #000000;
+  --fg: #e7e9ea;
+  --surface: #16181c;
+  --mist: #0a0a0a;
+  --fog: #202327;
+  --line: #2f3336;
+  --pill: #eff3f4;
+  --pill-fg: #0f1419;
+  --accent: #1d9bf0;
+  --accent-soft: #061a2b;
+  --danger: #f4212e;
+  --ok: #00ba7c;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+    --bg: #000000;
+    --fg: #e7e9ea;
+    --surface: #16181c;
+    --mist: #0a0a0a;
+    --fog: #202327;
+    --line: #2f3336;
+    --pill: #eff3f4;
+    --pill-fg: #0f1419;
+    --accent: #1d9bf0;
+    --accent-soft: #061a2b;
+    --danger: #f4212e;
+    --ok: #00ba7c;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-fg: var(--fg);
+  --color-surface: var(--surface);
+  --color-mist: var(--mist);
+  --color-fog: var(--fog);
+  --color-line: var(--line);
+  --color-pill: var(--pill);
+  --color-pill-fg: var(--pill-fg);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-danger: var(--danger);
+  --color-ok: var(--ok);
+  --font-sans: var(--font-instrument-sans), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-serif: var(--font-instrument-serif), Georgia, "Times New Roman", serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Theme button icons: show the moon in light mode and the sun in dark mode. */
+.only-dark { display: none; }
+:root[data-theme="dark"] .only-dark { display: block; }
+:root[data-theme="dark"] .only-light { display: none; }
+
+/* The 404 page carries its copy in both languages and shows only the visitor's. */
+:root:not(:lang(pt)) [data-copy="pt"],
+:root:is(:lang(pt)) [data-copy="en"] { display: none; }
+
+/* Dot texture on the sides of the hero. */
+.dither {
+  background-image: radial-gradient(circle, var(--color-accent) 1.4px, transparent 1.6px);
+  background-size: 15px 15px;
+  animation: drift 10s linear infinite, breathe 6s ease-in-out infinite;
+}
+@keyframes drift {
+  from { background-position: 0 0; }
+  to { background-position: 60px 30px; }
+}
+@keyframes breathe {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.6; }
+}
+
+/* Hero entrance: each piece rises and comes into focus, in sequence (--d is the delay). */
+@keyframes rise {
+  from { opacity: 0; translate: 0 18px; filter: blur(6px); }
+  to { opacity: 1; translate: 0 0; filter: blur(0); }
+}
+.rise {
+  animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--d, 0ms);
+}
+
+/* Reveal on scroll (enabled by RevealObserver). */
+.reveal-ready [data-reveal] {
+  opacity: 0;
+  transform: translateY(26px);
+}
+.reveal-ready [data-reveal].is-visible {
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1) var(--d, 0ms),
+    transform 0.8s cubic-bezier(0.22, 1, 0.36, 1) var(--d, 0ms);
+}
+
+/* Buttons respond to the mouse. */
+.press {
+  transition: scale 0.2s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease;
+}
+.press:hover { scale: 1.04; }
+.press:active { scale: 0.96; }
+
+/* The broom sweeps a few specks in the hero mark. */
+@keyframes sweep {
+  0%, 100% { rotate: -3deg; }
+  50% { rotate: 4deg; }
+}
+.sweep { transform-origin: 80% 20%; animation: sweep 2.6s ease-in-out infinite; }
+@keyframes speck {
+  0% { opacity: 0; translate: 0 0; }
+  30% { opacity: 1; }
+  100% { opacity: 0; translate: 14px -6px; }
+}
+.speck { animation: speck 2.6s ease-in-out infinite; }
+
+/* FAQ answers ease in when opened. */
+details[open] > div { animation: rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .rise, .dither, .sweep, .speck, details[open] > div { animation: none; }
+  .reveal-ready [data-reveal] { opacity: 1; transform: none; }
+  .press { transition: none; }
+}

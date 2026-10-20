@@ -1,0 +1,260 @@
+import { notFound } from "next/navigation";
+import { getDictionary, hasLocale, locales, type Dictionary } from "@/i18n/dictionaries";
+import { Mark, GithubLogo } from "@/components/mark";
+import { HeaderMenu } from "@/components/header-menu";
+import { RevealObserver } from "@/components/motion-bits";
+import { PopupDemo } from "@/components/popup-demo";
+
+const REPO_URL = "https://github.com/guilhermekollet/x-cleaner";
+
+const after = (ms: number) => ({ "--d": `${ms}ms` }) as React.CSSProperties;
+const pill = "press inline-flex items-center justify-center gap-2 rounded-full px-5 h-11 text-sm font-semibold whitespace-nowrap";
+const sectionTitle = "text-[clamp(26px,4vw,38px)] leading-[1.15] font-serif tracking-tight";
+const card = "rounded-2xl border border-line bg-surface p-6";
+
+const NAV: { href: string; key: keyof Dictionary["nav"] }[] = [
+  { href: "#what", key: "what" },
+  { href: "#reach", key: "reach" },
+  { href: "#privacy", key: "privacy" },
+  { href: "#install", key: "install" },
+  { href: "#faq", key: "faq" },
+];
+
+export function generateStaticParams() {
+  return locales.map((lang) => ({ lang }));
+}
+
+function SectionHead({ title, text }: { title: string; text?: string }) {
+  return (
+    <div data-reveal className="mx-auto mb-12 max-w-[640px] text-center">
+      <h2 className={sectionTitle}>{title}</h2>
+      {text ? <p className="mt-4 text-[17px] leading-relaxed text-fg/60">{text}</p> : null}
+    </div>
+  );
+}
+
+export default async function Page({ params }: PageProps<"/[lang]">) {
+  const { lang } = await params;
+  if (!hasLocale(lang)) notFound();
+  const d = getDictionary(lang);
+
+  return (
+    <>
+      <RevealObserver />
+
+      {/* Header */}
+      <header className="sticky top-0 z-50 border-b border-line/60 bg-bg/80 backdrop-blur">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
+          <a href="#top" className="flex items-center gap-2 font-semibold">
+            <Mark className="size-7 text-fg" />
+            <span>X Cleaner</span>
+          </a>
+          <nav className="hidden items-center gap-6 text-sm text-fg/70 md:flex" aria-label={d.a11y.sections}>
+            {NAV.map((n) => (
+              <a key={n.href} href={n.href} className="hover:text-fg">
+                {d.nav[n.key]}
+              </a>
+            ))}
+          </nav>
+          <div className="flex items-center gap-3">
+            <a href={REPO_URL} target="_blank" rel="noopener" className={`${pill} hidden bg-pill text-pill-fg sm:inline-flex`}>
+              <GithubLogo className="size-4" />
+              {d.github}
+            </a>
+            <HeaderMenu lang={lang} dict={d} />
+          </div>
+        </div>
+      </header>
+
+      <main id="top">
+        {/* Hero */}
+        <section className="relative overflow-hidden">
+          <div className="dither pointer-events-none absolute inset-y-0 left-0 w-24 opacity-40 md:w-40" aria-hidden="true" />
+          <div className="dither pointer-events-none absolute inset-y-0 right-0 w-24 opacity-40 md:w-40" aria-hidden="true" />
+          <div className="mx-auto grid max-w-6xl items-center gap-12 px-5 py-20 md:grid-cols-2 md:py-28">
+            <div>
+              <p className="rise inline-flex items-center gap-2 rounded-full border border-line px-3 py-1 text-xs font-medium text-fg/60" style={after(0)}>
+                <Mark className="size-4 text-accent" />
+                {d.hero.eyebrow}
+              </p>
+              <h1 className="rise mt-5 font-serif text-[clamp(38px,6.5vw,64px)] leading-[1.05] tracking-tight" style={after(80)}>
+                {d.hero.title}
+              </h1>
+              <p className="rise mt-5 max-w-[30rem] text-[18px] leading-relaxed text-fg/70" style={after(160)}>
+                {d.hero.text}
+              </p>
+              <div className="rise mt-8 flex flex-wrap gap-3" style={after(240)}>
+                <a href={REPO_URL} target="_blank" rel="noopener" className={`${pill} bg-accent text-white`}>
+                  <GithubLogo className="size-4" />
+                  {d.hero.cta}
+                </a>
+                <a href="#what" className={`${pill} border border-line text-fg`}>
+                  {d.hero.see}
+                </a>
+              </div>
+            </div>
+            <div className="rise flex justify-center md:justify-end" style={after(320)}>
+              <PopupDemo dict={d} />
+            </div>
+          </div>
+        </section>
+
+        {/* What it does */}
+        <section id="what" className="scroll-mt-20 border-t border-line/60 py-20 md:py-28">
+          <div className="mx-auto max-w-6xl px-5">
+            <SectionHead title={d.what.title} text={d.what.text} />
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {d.what.items.map((item, i) => (
+                <div key={i} data-reveal style={after((i % 3) * 80)} className={card}>
+                  <div className="mb-3 grid size-9 place-items-center rounded-full bg-accent-soft text-accent">
+                    <CheckIcon />
+                  </div>
+                  <h3 className="font-semibold">{item.title}</h3>
+                  <p className="mt-1.5 text-sm leading-relaxed text-fg/60">{item.text}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* How it reaches old posts */}
+        <section id="reach" className="scroll-mt-20 border-t border-line/60 bg-mist py-20 md:py-28">
+          <div className="mx-auto max-w-5xl px-5">
+            <SectionHead title={d.reach.title} text={d.reach.text} />
+            <div data-reveal className="mx-auto max-w-2xl rounded-2xl border border-line bg-surface p-7">
+              <h3 className="font-serif text-2xl tracking-tight">{d.reach.archiveTitle}</h3>
+              <p className="mt-3 leading-relaxed text-fg/70">{d.reach.archiveText}</p>
+              <p className="mt-5 flex items-start gap-2.5 rounded-xl border border-danger/30 bg-danger/5 p-4 text-sm text-fg/80">
+                <WarnIcon />
+                <span>{d.reach.warn}</span>
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Privacy */}
+        <section id="privacy" className="scroll-mt-20 border-t border-line/60 py-20 md:py-28">
+          <div className="mx-auto max-w-6xl px-5">
+            <SectionHead title={d.privacy.title} text={d.privacy.text} />
+            <div className="grid gap-4 sm:grid-cols-2">
+              {d.privacy.items.map((item, i) => (
+                <div key={i} data-reveal style={after((i % 2) * 80)} className={`${card} flex gap-4`}>
+                  <div className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-full bg-accent-soft text-accent">
+                    <LockIcon />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">{item.title}</h3>
+                    <p className="mt-1.5 text-sm leading-relaxed text-fg/60">{item.text}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Install */}
+        <section id="install" className="scroll-mt-20 border-t border-line/60 bg-mist py-20 md:py-28">
+          <div className="mx-auto max-w-5xl px-5">
+            <SectionHead title={d.install.title} text={d.install.text} />
+            <ol className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {d.install.steps.map((step, i) => (
+                <li key={i} data-reveal style={after(i * 80)} className={card}>
+                  <span className="font-mono text-sm font-semibold text-accent">{String(i + 1).padStart(2, "0")}</span>
+                  <h3 className="mt-2 font-semibold">{step.title}</h3>
+                  <p className="mt-1.5 text-sm leading-relaxed text-fg/60">{step.text}</p>
+                </li>
+              ))}
+            </ol>
+            <div data-reveal className="mt-10 text-center">
+              <a href={REPO_URL} target="_blank" rel="noopener" className={`${pill} bg-accent text-white`}>
+                <GithubLogo className="size-4" />
+                {d.install.cta}
+              </a>
+            </div>
+          </div>
+        </section>
+
+        {/* Limitations */}
+        <section className="border-t border-line/60 py-20 md:py-28">
+          <div className="mx-auto max-w-5xl px-5">
+            <SectionHead title={d.limits.title} />
+            <div className="grid gap-4 md:grid-cols-3">
+              {d.limits.items.map((item, i) => (
+                <div key={i} data-reveal style={after(i * 80)} className={card}>
+                  <h3 className="font-semibold">{item.title}</h3>
+                  <p className="mt-1.5 text-sm leading-relaxed text-fg/60">{item.text}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* FAQ */}
+        <section id="faq" className="scroll-mt-20 border-t border-line/60 bg-mist py-20 md:py-28">
+          <div className="mx-auto max-w-3xl px-5">
+            <SectionHead title={d.faq.title} />
+            <div className="space-y-3">
+              {d.faq.items.map((item, i) => (
+                <details key={i} data-reveal className={`${card} group`}>
+                  <summary className="flex cursor-pointer items-center justify-between gap-4 font-medium">
+                    {item.q}
+                    <PlusIcon />
+                  </summary>
+                  <div className="mt-3 text-sm leading-relaxed text-fg/60">{item.a}</div>
+                </details>
+              ))}
+            </div>
+          </div>
+        </section>
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t border-line/60 py-12" aria-label={d.a11y.footer}>
+        <div className="mx-auto flex max-w-6xl flex-col items-center gap-4 px-5 text-center">
+          <a href="#top" className="flex items-center gap-2 font-semibold">
+            <Mark className="size-6 text-fg" />
+            X Cleaner
+          </a>
+          <p className="text-sm text-fg/60">{d.footer.tagline}</p>
+          <div className="flex items-center gap-4 text-sm">
+            <a href={REPO_URL} target="_blank" rel="noopener" className="inline-flex items-center gap-1.5 text-fg/70 hover:text-fg">
+              <GithubLogo className="size-4" />
+              {d.footer.openSource}
+            </a>
+          </div>
+          <p className="mt-2 text-xs text-fg/40">{d.footer.notAffiliated}</p>
+        </div>
+      </footer>
+    </>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M20 6 9 17l-5-5" />
+    </svg>
+  );
+}
+function LockIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-4.5" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="4.5" y="10.5" width="15" height="10" rx="2.5" />
+      <path d="M8 10.5V7a4 4 0 0 1 8 0v3.5" />
+    </svg>
+  );
+}
+function WarnIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-5 shrink-0 text-danger" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" />
+    </svg>
+  );
+}
+function PlusIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-5 shrink-0 text-fg/40 transition-transform group-open:rotate-45" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}
