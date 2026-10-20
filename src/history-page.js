@@ -142,49 +142,124 @@ function renderList() {
   $("more").textContent = t("history.more", { n: fmtNumber(Math.min(PAGE, rest)) });
 }
 
+// Each record is drawn the way x.com draws a post: avatar, name, @handle · date, "Replying to",
+// the text with its mentions, hashtags and links, the media grid and link card, and a quiet
+// footer for when it was deleted. Nothing is fetched: the avatar is the handle's initial and the
+// media are placeholders that link to the files.
 function renderRecord(r) {
+  const meHandle = accountList.find((a) => a.id === current)?.handle || null;
+  let author = meHandle;
+  let text = r.text;
+  let social = null; // the grey line above a post: "You reposted", "You liked"
+  if (r.kind === "repost") {
+    author = r.repostOf?.user || r.text.match(/^RT @(\w+):/)?.[1] || null;
+    text = r.repostOf?.text || r.text.replace(/^RT @\w+: /, "");
+    social = h("div", { class: "post-social" }, icon("repost"), t("history.youReposted"));
+  } else if (r.kind === "like") {
+    author = r.url.match(/^https:\/\/(?:x|twitter)\.com\/(?!i\/)(\w+)\/status\//)?.[1] || null;
+    social = h("div", { class: "post-social" }, icon("heart"), t("history.youLiked"));
+  }
+
   const head = h(
     "div",
-    { class: "record-head" },
-    h("span", { class: "kind" }, t("history.kind." + r.kind)),
-    // A like has no date of its own in the archive; anything else without one says so.
-    r.createdAt
-      ? h("span", { class: "when" }, t("history.posted", { date: fmtDate(r.createdAt) }))
-      : r.kind !== "like" && h("span", { class: "when" }, t("history.noDate")),
-    extLink(r.url, h("span", { class: "id" }, r.id))
+    { class: "post-head" },
+    h("b", { class: "post-name" }, author || t("history.unknownAuthor")),
+    author && h("span", { class: "post-handle" }, "@" + author),
+    r.createdAt && h("span", { class: "post-dot", "aria-hidden": "true" }, "·"),
+    r.createdAt && h("time", { datetime: r.createdAt, title: fmtDate(r.createdAt) }, fmtDay(r.createdAt)),
+    extLink(r.url, icon("open")),
   );
+  head.lastElementChild.classList.add("post-open");
+  head.lastElementChild.setAttribute("title", t("history.openOnX"));
+  head.lastElementChild.setAttribute("aria-label", t("history.openOnX"));
 
-  const context = [];
-  if (r.replyTo) context.push(extLink(XHistory.statusUrl(r.replyTo.id), t("history.replyTo", { user: r.replyTo.user ? "@" + r.replyTo.user : r.replyTo.id })));
-  if (r.repostOf) context.push(extLink(XHistory.statusUrl(r.repostOf.id), t("history.repostOf", { user: r.repostOf.user ? "@" + r.repostOf.user : r.repostOf.id })));
-
-  const attachments = [
-    ...r.media.map((m, i) => {
-      // Numbered within its type when there are several: Photo 1, Photo 2, Video.
-      const k = mediaKind(m.type);
-      const same = r.media.filter((x) => mediaKind(x.type) === k);
-      const n = same.length > 1 ? " " + (r.media.slice(0, i + 1).filter((x) => mediaKind(x.type) === k).length) : "";
-      return extLink(m.url, icon(k), t("history.media." + k) + n);
-    }),
-    ...r.links.map((u) => extLink(u, icon("link"), hostOf(u))),
-  ];
+  const replying =
+    r.replyTo &&
+    h(
+      "div",
+      { class: "post-replying" },
+      ...fill(t("history.replyingTo"), extLink(XHistory.statusUrl(r.replyTo.id), r.replyTo.user ? "@" + r.replyTo.user : r.replyTo.id))
+    );
 
   return h(
     "li",
-    { class: "record" },
-    head,
-    context.length ? h("div", { class: "record-context" }, context) : null,
-    r.text ? h("p", { class: "record-text" }, r.text) : null,
-    attachments.length ? h("div", { class: "record-attachments" }, attachments) : null,
-    r.deletedAt ? h("p", { class: "record-deleted" }, t("history.deleted", { date: fmtDate(r.deletedAt) })) : null
+    { class: "post" },
+    social,
+    h(
+      "div",
+      { class: "post-row" },
+      h("div", { class: "avatar", "aria-hidden": "true" }, author ? author[0].toUpperCase() : icon("person")),
+      h(
+        "div",
+        { class: "post-body" },
+        head,
+        replying,
+        text && h("p", { class: "post-text" }, linkify(text)),
+        mediaGrid(r.media),
+        ...r.links.map(linkCard),
+        h(
+          "div",
+          { class: "post-foot" },
+          h("span", {}, icon("trash"), r.deletedAt ? t("history.deleted", { date: fmtDate(r.deletedAt) }) : ""),
+          h("span", { class: "id" }, r.id)
+        )
+      )
+    )
   );
 }
+
+// Puts a node where "{user}" is in a translated sentence.
+function fill(template, node) {
+  const [before, after = ""] = template.split("{user}");
+  return [before, node, after];
+}
+
+const fmtDay = (iso) => new Intl.DateTimeFormat(XI18n.locale, { dateStyle: "medium" }).format(new Date(iso));
+
+// Mentions, hashtags and web links become links, as on x.com; everything else stays text.
+function linkify(text) {
+  const out = [];
+  const re = /(https?:\/\/[^\s]+)|(?<![\w@])@(\w{1,15})|(?<![\w#])#([\p{L}\p{N}_]+)/gu;
+  let last = 0;
+  for (const m of text.matchAll(re)) {
+    if (m.index > last) out.push(text.slice(last, m.index));
+    const href = m[1] ? m[1] : m[2] ? `https://x.com/${m[2]}` : `https://x.com/hashtag/${encodeURIComponent(m[3])}`;
+    out.push(extLink(href, m[0]));
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) out.push(text.slice(last));
+  return out;
+}
+
+// The media grid x.com uses (one wide, two side by side, three with one tall, four in a square),
+// with placeholders instead of the images: loading them would be a request to X's servers.
+function mediaGrid(media) {
+  if (!media.length) return null;
+  const counts = {};
+  return h(
+    "div",
+    { class: "media-grid", "data-count": String(Math.min(media.length, 4)) },
+    media.slice(0, 4).map((m) => {
+      const k = mediaKind(m.type);
+      counts[k] = (counts[k] || 0) + 1;
+      // Numbered within its type when there are several: Photo 1, Photo 2, Video.
+      const several = media.filter((x) => mediaKind(x.type) === k).length > 1;
+      return extLink(m.url, icon(k), h("span", {}, t("history.media." + k) + (several ? " " + counts[k] : "")));
+    })
+  );
+}
+
+const linkCard = (u) => extLink(u, h("span", { class: "card-host" }, hostOf(u)), h("span", { class: "card-url" }, u));
 
 const ICONS = {
   photo: ["M4.5 5.5h15v13h-15z", "m4.5 15.5 4-4 3 3 2.5-2.5 5.5 5.5"],
   video: ["M4.5 5.5h15v13h-15z", "m10.5 9.5 4 2.5-4 2.5z"],
   gif: ["M4.5 5.5h15v13h-15z", "M9.5 10.5h-2v3h2v-1.5M12 10.5v3M14.5 13.5v-3h2M14.5 12h1.5"],
-  link: ["M10 14a4 4 0 0 0 5.66 0l2.83-2.83a4 4 0 0 0-5.66-5.66L11.5 6.8", "M14 10a4 4 0 0 0-5.66 0l-2.83 2.83a4 4 0 0 0 5.66 5.66l1.3-1.3"],
+  repost: ["M4.5 11V8a2 2 0 0 1 2-2h11.5l-3-3", "M19.5 13v3a2 2 0 0 1-2 2H6l3 3"],
+  heart: ["M12 20s-7.5-4.6-7.5-10A4.3 4.3 0 0 1 12 7.3 4.3 4.3 0 0 1 19.5 10C19.5 15.4 12 20 12 20z"],
+  trash: ["M4.5 7h15M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13M10 11v5M14 11v5"],
+  open: ["M14 4h6v6M20 4l-9 9M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"],
+  person: ["M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z", "M4.5 20a7.5 7.5 0 0 1 15 0"],
 };
 function icon(name) {
   const ns = "http://www.w3.org/2000/svg";
