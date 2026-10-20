@@ -1,11 +1,15 @@
 @import "tailwindcss";
 
+/* `dark:` follows the theme the page chose (data-theme), not only the system setting. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 /* Colors that change with the theme. The palette follows x.com: black and white, with X's blue
    as the one accent. */
 :root {
   color-scheme: light;
   --bg: #ffffff;
   --fg: #0f1419;
+  --muted: #536471;
   --surface: #ffffff;
   --mist: #f7f9f9;
   --fog: #eff3f4;
@@ -22,6 +26,7 @@
   color-scheme: dark;
   --bg: #000000;
   --fg: #e7e9ea;
+  --muted: #71767b;
   --surface: #16181c;
   --mist: #0a0a0a;
   --fog: #202327;
@@ -39,6 +44,7 @@
     color-scheme: dark;
     --bg: #000000;
     --fg: #e7e9ea;
+    --muted: #71767b;
     --surface: #16181c;
     --mist: #0a0a0a;
     --fog: #202327;
@@ -55,6 +61,7 @@
 @theme inline {
   --color-bg: var(--bg);
   --color-fg: var(--fg);
+  --color-muted: var(--muted);
   --color-surface: var(--surface);
   --color-mist: var(--mist);
   --color-fog: var(--fog);

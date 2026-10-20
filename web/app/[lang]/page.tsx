@@ -3,7 +3,7 @@ import { getDictionary, hasLocale, locales } from "@/i18n/dictionaries";
 import { Mark, GithubLogo } from "@/components/mark";
 import { HeaderMenu } from "@/components/header-menu";
 import { RevealObserver } from "@/components/motion-bits";
-import { PopupDemo } from "@/components/popup-demo";
+import { XTimelineDemo } from "@/components/x-timeline-demo";
 
 const REPO_SLUG = "guilhermekollet/x-cleaner";
 const REPO_URL = `https://github.com/${REPO_SLUG}`;
@@ -95,7 +95,7 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
               </div>
             </div>
             <div className="rise flex justify-center md:justify-end" style={after(320)}>
-              <PopupDemo dict={d} />
+              <XTimelineDemo dict={d} lang={lang} />
             </div>
           </div>
         </section>
