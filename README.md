@@ -142,7 +142,11 @@ src/
 icons/                 Generated PNG icons (scripts/make-icons.mjs)
 scripts/               Icon generation, test runner, packaging, and the ship helper
 test/                  Node test suite (node --test)
+web/                   The website (Next.js, Tailwind CSS), published to GitHub Pages
 ```
+
+The website lives in [`web/`](web/README.md) and is published to GitHub Pages on every push to
+`main` that touches it.
 
 ## Contributing
 
