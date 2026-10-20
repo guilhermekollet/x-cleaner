@@ -16,6 +16,14 @@ let archiveItems = null; // parsed items, when the archive source is used
 let archiveState = null; // "reading" | "error" | { total, by } — for re-rendering the summary
 let lastRender = null; // last snapshot shown while running
 let polling = null;
+let profilePath = null; // the signed-in profile (/handle), for "View profile" after a test
+
+// The test comes first: a run deletes 5 and stops, then offers the rest. It is skipped once a test
+// has passed (this session or before, remembered in storage) or when "Skip the test" is ticked.
+const TESTED_KEY = "xcleaner.tested";
+let testPassed = false; // a test passed in this popup session: the full run continues from it
+let lastRunWasTest = false;
+const isTest = () => !testPassed && !$("skipTest").checked;
 
 const sourceValue = () => document.querySelector('input[name="source"]:checked').value;
 const speedValue = () => document.querySelector('input[name="speed"]:checked').value;
@@ -30,15 +38,50 @@ async function send(type, payload) {
 }
 
 // --- Language ----------------------------------------------------------------
-for (const b of document.querySelectorAll(".lang button")) b.addEventListener("click", () => XI18n.set(b.dataset.lang));
+// The switch animates: the copy cross-fades into the new language where the browser supports view
+// transitions and motion isn't reduced; otherwise it just changes.
+// Clicks compare against the language being switched to, so quick clicks during a transition
+// still land on the last one.
+let targetLang = null;
+for (const b of document.querySelectorAll(".lang button"))
+  b.addEventListener("click", () => {
+    const next = b.dataset.lang;
+    if (next === (targetLang ?? XI18n.lang)) return;
+    targetLang = next;
+    // Every swap applies the latest target, so callbacks that run late or out of order still
+    // leave the last clicked language in place.
+    let applied = false;
+    const swap = () => {
+      if (applied) return;
+      applied = true;
+      XI18n.set(targetLang ?? next);
+    };
+    if (document.startViewTransition && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      const vt = document.startViewTransition(swap);
+      // A transition cut short (another click, the popup closing) is fine; don't report it.
+      for (const p of [vt.ready, vt.finished, vt.updateCallbackDone]) p?.catch(() => {});
+      vt.finished.finally(() => targetLang === XI18n.lang && (targetLang = null)).catch(() => {});
+      // The language must change even when the page can't paint the animation (a background tab).
+      setTimeout(() => {
+        if (applied) return;
+        vt.skipTransition();
+        swap();
+      }, 250);
+    } else {
+      swap();
+      targetLang = null;
+    }
+  });
 XI18n.onChange(renderText);
 
 // Re-renders every piece of copy that depends on state, in the current language.
 function renderText() {
   for (const b of document.querySelectorAll(".lang button")) b.setAttribute("aria-pressed", String(b.dataset.lang === XI18n.lang));
+  document.querySelector(".lang").dataset.lang = XI18n.lang;
   $("accountText").textContent = t(accountKey);
   $("typeLabel").textContent = t("confirm.type", { word: t("confirm.word") });
-  $("start").textContent = $("test").checked ? t("start.test") : t("start.all");
+  $("start").textContent = isTest() ? t("start.test") : t("start.all");
+  $("fullBanner").classList.toggle("hidden", !testPassed);
   renderSummary();
   if (lastRender) render(lastRender.s, lastRender.done);
 }
@@ -52,6 +95,10 @@ async function init() {
   XI18n.apply();
   renderText();
   await XI18n.load();
+  try {
+    if ((await chrome.storage.local.get(TESTED_KEY))[TESTED_KEY]) $("skipTest").checked = true;
+  } catch {}
+  renderText();
 
   const tab = inTab
     ? await chrome.tabs.get(pinnedTab).catch(() => null)
@@ -61,6 +108,7 @@ async function init() {
   const pong = await send("ping");
   if (!pong) return setAccount("out", "status.reload");
   signedIn = pong.signedIn;
+  profilePath = pong.profile || null;
   if (!signedIn) return setAccount("out", "status.signedOut");
   setAccount("in", "status.ready");
   refreshStart();
@@ -117,14 +165,14 @@ function renderSummary() {
 // --- Enabling Start --------------------------------------------------------------
 for (const id of ["ack", "confirmWord", "t-post", "t-reply", "t-repost", "t-like"]) $(id).addEventListener("input", refreshStart);
 for (const r of document.querySelectorAll('input[name="source"]')) r.addEventListener("change", refreshStart);
-$("test").addEventListener("change", () => {
+$("skipTest").addEventListener("change", () => {
   renderText();
   refreshStart();
 });
 
 function confirmed() {
   if (!$("ack").checked) return false;
-  if ($("test").checked) return true; // a 5-item test needs only the acknowledgement
+  if (isTest()) return true; // a 5-item test needs only the acknowledgement
   return XI18n.confirmWords().includes($("confirmWord").value.trim().toUpperCase());
 }
 
@@ -133,7 +181,7 @@ function refreshStart() {
   // In the toolbar popup the archive run is set up in a tab, so the popup keeps only the picker.
   document.body.classList.toggle("archive-mode", archive);
   $("archiveRow").classList.toggle("hidden", !archive);
-  $("typeRow").classList.toggle("hidden", $("test").checked);
+  $("typeRow").classList.toggle("hidden", isTest());
   $("likeHint").classList.toggle("hidden", !($("t-like").checked && !archive));
   const types = selectedTypes();
   const anyType = archive ? Object.values(types).some(Boolean) : types.post || types.reply || types.repost;
@@ -156,9 +204,11 @@ $("start").addEventListener("click", async () => {
     until: $("f-until").value ? new Date($("f-until").value + "T23:59:59").toISOString() : null,
     keepIds: parseKeep(),
     speed: speedValue(),
-    limit: $("test").checked ? 5 : "all",
-    resume: $("resumePrev").checked,
+    limit: isTest() ? 5 : "all",
+    // After a test, the full run skips what the test already removed.
+    resume: $("resumePrev").checked || testPassed,
   };
+  lastRunWasTest = isTest();
   const res = await send("start", { config });
   if (!res || !res.ok) return setAccount("out", res && res.error === "already-running" ? "run.alreadyRunning" : "run.couldNotStart");
   enterRunning();
@@ -175,29 +225,47 @@ $("resume").addEventListener("click", async () => {
   $("pause").classList.remove("hidden");
 });
 $("stop").addEventListener("click", () => send("stop"));
-$("again").addEventListener("click", () => {
+function backToSetup() {
   lastRender = null;
   $("progress").classList.add("hidden");
   $("setup").classList.remove("hidden");
   for (const id of ["pause", "stop"]) $(id).classList.remove("hidden");
-  $("again").classList.add("hidden");
+  for (const id of ["again", "viewProfile", "continueFull"]) $(id).classList.add("hidden");
+  renderText();
   refreshStart();
+}
+$("again").addEventListener("click", backToSetup);
+
+// After a test: look at the profile, then continue with the rest.
+$("viewProfile").addEventListener("click", async () => {
+  if (tabId === null) return;
+  await chrome.tabs.update(tabId, { url: `${new URL("https://x.com")}${(profilePath || "/home").replace(/^\//, "")}`, active: true });
+});
+$("continueFull").addEventListener("click", () => {
+  testPassed = true;
+  backToSetup();
+  $("confirmWord").focus();
 });
 
 function enterRunning() {
   $("setup").classList.add("hidden");
   $("progress").classList.remove("hidden");
   for (const id of ["pause", "stop"]) $(id).classList.remove("hidden");
-  for (const id of ["resume", "again"]) $(id).classList.add("hidden");
+  for (const id of ["resume", "again", "viewProfile", "continueFull"]) $(id).classList.add("hidden");
   if (!polling) polling = setInterval(poll, 1000);
   poll();
 }
 
-function exitRunning() {
+function exitRunning(final) {
   clearInterval(polling);
   polling = null;
   for (const id of ["pause", "resume", "stop"]) $(id).classList.add("hidden");
-  $("again").classList.remove("hidden");
+  // A test that went through offers the next step; anything else offers a new run.
+  const testOk = lastRunWasTest && final && !final.fatal && !final.stopped;
+  $("again").classList.toggle("hidden", testOk);
+  $("viewProfile").classList.toggle("hidden", !testOk);
+  $("continueFull").classList.toggle("hidden", !testOk);
+  if (testOk) chrome.storage.local.set({ [TESTED_KEY]: true }).catch(() => {});
 }
 
 async function poll() {
@@ -205,7 +273,7 @@ async function poll() {
   if (!st) return;
   if (!st.running && st.finished) {
     render(st.finished, true);
-    exitRunning();
+    exitRunning(st.finished);
   } else render(st.snapshot || {}, false);
 }
 
@@ -223,6 +291,7 @@ function render(s, done) {
 
   let msg;
   if (s.fatal) msg = t("run.stoppedWith", { reason: friendlyFatal(s.fatal) });
+  else if (done && lastRunWasTest && !s.stopped) msg = t("testDone.text", { n: fmt.format((s.deleted || 0) + (s.gone || 0)) });
   else if (done) msg = s.stopped ? t("run.stopped") : t("run.done");
   else if (s.waiting || s.waitUntil) msg = t("run.limited", { s: secsUntil(s.waitUntil) });
   else if (s.batchUntil) msg = t("run.batch", { s: secsUntil(s.batchUntil) });
