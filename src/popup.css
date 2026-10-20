@@ -184,12 +184,13 @@ h2 { margin: 0 0 8px; font-size: 13px; font-weight: 700; letter-spacing: -0.005e
 .segmented { display: grid; grid-template-columns: repeat(3, 1fr); padding: 3px; border-radius: 999px; background: var(--fog); }
 .segmented label { cursor: pointer; }
 .segmented input { position: absolute; opacity: 0; pointer-events: none; }
-.segmented span {
-  display: block; text-align: center; padding: 7px 0; border-radius: 999px;
+.segmented .seg {
+  display: flex; align-items: center; justify-content: center; gap: 6px; padding: 7px 0; border-radius: 999px;
   font-weight: 600; font-size: 13px; color: var(--muted); transition: all 0.15s;
 }
-.segmented input:checked + span { background: var(--bg); color: var(--fg); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15); }
-.segmented input:focus-visible + span { outline: 2px solid var(--fg); outline-offset: 1px; }
+.segmented input:checked + .seg { background: var(--bg); color: var(--fg); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15); }
+.segmented input:focus-visible + .seg { outline: 2px solid var(--fg); outline-offset: 1px; }
+.segmented .seg svg { width: 15px; height: 15px; fill: currentColor; stroke: none; }
 
 /* More options: a quiet disclosure line; its fields open below it. */
 .filters.block { margin-top: 10px; }
