@@ -22,7 +22,7 @@ export default function GlobalNotFound() {
         </Script>
         <main className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center gap-4 px-6 text-center">
           <p className="font-mono text-sm text-fg/50">404</p>
-          <h1 className="font-serif text-3xl">
+          <h1 className="text-3xl font-bold tracking-[-0.02em]">
             <span data-copy="en">Page not found</span>
             <span data-copy="pt">Página não encontrada</span>
           </h1>
