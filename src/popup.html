@@ -28,6 +28,9 @@
           <code>.zip</code> from <i>Settings → Your account → Download an archive of your data</i>.</span>
         </label>
         <div id="archiveRow" class="archive hidden">
+          <!-- In the toolbar popup the file dialog would close the popup (Chrome on macOS and
+               Linux), so there the picker opens this same page in a tab instead. -->
+          <button id="pickInTab" type="button" class="ghost hidden">Choose the archive file in a tab</button>
           <input type="file" id="archiveFile" accept=".zip,.js" multiple />
           <p id="archiveSummary" class="muted"></p>
         </div>

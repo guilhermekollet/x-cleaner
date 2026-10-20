@@ -3,6 +3,11 @@
 // directly — it only sends messages to the tab and polls it for status.
 const $ = (id) => document.getElementById(id);
 
+// The page runs either as the toolbar popup or, for picking the archive file, in a tab of its
+// own. In a tab, `?tab=` names the x.com tab it drives.
+const pinnedTab = Number(new URLSearchParams(location.search).get("tab")) || null;
+const inTab = pinnedTab !== null;
+
 let tabId = null;
 let signedIn = false;
 let archiveItems = null; // parsed items, when the archive source is used
@@ -44,7 +49,13 @@ async function send(type, payload) {
 }
 
 async function init() {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  document.body.classList.toggle("in-tab", inTab);
+  // The file dialog works in a tab; from the popup, offer to continue there.
+  $("pickInTab").classList.toggle("hidden", inTab);
+  els.archiveFile.classList.toggle("hidden", !inTab);
+  const tab = inTab
+    ? await chrome.tabs.get(pinnedTab).catch(() => null)
+    : (await chrome.tabs.query({ active: true, currentWindow: true }))[0];
   if (!tab || !/^https:\/\/(x|twitter)\.com\//.test(tab.url || "")) {
     setAccount("out", "Open x.com in this tab and sign in, then reopen this popup.");
     disableAll();
@@ -79,6 +90,12 @@ function disableAll() {
 }
 
 // --- Archive reading ---------------------------------------------------------
+$("pickInTab").addEventListener("click", async () => {
+  if (tabId === null) return;
+  await chrome.tabs.create({ url: chrome.runtime.getURL(`src/popup.html?tab=${tabId}`) });
+  window.close();
+});
+
 els.archiveFile.addEventListener("change", async () => {
   archiveItems = null;
   els.archiveSummary.textContent = "Reading…";

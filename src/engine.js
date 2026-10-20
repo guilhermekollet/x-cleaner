@@ -64,8 +64,8 @@ globalThis.XEngine = (() => {
     return true;
   }
 
+  // Posts, replies and reposts all go through DeleteTweet with their own id; likes are undone.
   function act(item) {
-    if (item.kind === "repost") return XApi.deleteRepost(item.id);
     if (item.kind === "like") return XApi.removeLike(item.id);
     return XApi.deletePost(item.id);
   }
