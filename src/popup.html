@@ -25,6 +25,7 @@
         </div>
       </div>
       <div class="lang" role="group" aria-label="Language">
+        <span class="thumb" aria-hidden="true"></span>
         <button type="button" data-lang="en">EN</button>
         <button type="button" data-lang="pt">PT</button>
       </div>
@@ -79,20 +80,14 @@
         <p id="likeHint" class="hint hidden" data-i18n="types.likeHint"></p>
       </section>
 
-      <div class="block pair needs-setup">
-        <section>
-          <h2 data-i18n="speed.title"></h2>
-          <div class="segmented" role="radiogroup">
-            <label><input type="radio" name="speed" value="cautious" /><span data-i18n="speed.cautious"></span></label>
-            <label><input type="radio" name="speed" value="normal" checked /><span data-i18n="speed.normal"></span></label>
-            <label><input type="radio" name="speed" value="fast" /><span data-i18n="speed.fast"></span></label>
-          </div>
-        </section>
-        <label class="toggle">
-          <h2 data-i18n="test.title"></h2>
-          <span class="toggle-row"><input type="checkbox" id="test" class="switch" checked /><small data-i18n="test.hint"></small></span>
-        </label>
-      </div>
+      <section class="block needs-setup">
+        <h2 data-i18n="speed.title"></h2>
+        <div class="segmented" role="radiogroup">
+          <label><input type="radio" name="speed" value="cautious" /><span data-i18n="speed.cautious"></span></label>
+          <label><input type="radio" name="speed" value="normal" checked /><span data-i18n="speed.normal"></span></label>
+          <label><input type="radio" name="speed" value="fast" /><span data-i18n="speed.fast"></span></label>
+        </div>
+      </section>
 
       <details class="block filters needs-setup">
         <summary><span data-i18n="filters.title"></span></summary>
@@ -102,8 +97,15 @@
           <label class="field"><span data-i18n="filters.until"></span><input type="date" id="f-until" /></label>
         </div>
         <label class="field"><span data-i18n="filters.keep"></span><input type="text" id="f-keep" data-i18n-placeholder="filters.keepPh" /></label>
+        <label class="check quiet"><input type="checkbox" id="skipTest" /><span data-i18n="test.skip"></span></label>
         <label class="check quiet"><input type="checkbox" id="resumePrev" /><span><span data-i18n="resume"></span> <small data-i18n="resumeHint"></small></span></label>
       </details>
+
+      <!-- After a successful test: the full run picks up where the test stopped. -->
+      <p id="fullBanner" class="banner needs-setup hidden">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+        <span data-i18n="full.banner"></span>
+      </p>
 
       <section class="confirm needs-setup">
         <label class="check"><input type="checkbox" id="ack" /><span data-i18n="confirm.ack"></span></label>
@@ -126,11 +128,16 @@
         <button id="resume" type="button" class="btn btn-outline hidden" data-i18n="run.resume"></button>
         <button id="stop" type="button" class="btn btn-outline" data-i18n="run.stop"></button>
         <button id="again" type="button" class="btn btn-solid btn-block hidden" data-i18n="run.again"></button>
+        <button id="viewProfile" type="button" class="btn btn-outline hidden" data-i18n="testDone.view"></button>
+        <button id="continueFull" type="button" class="btn btn-solid grow hidden" data-i18n="testDone.continue"></button>
       </div>
     </section>
 
     <footer class="foot">
-      <span data-i18n="foot.private"></span>
+      <span class="private">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2.5" /><path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3" /></svg>
+        <span data-i18n="foot.private"></span>
+      </span>
       ·
       <a href="https://github.com/guilhermekollet/x-cleaner" target="_blank" rel="noopener" data-i18n="foot.source"></a>
     </footer>

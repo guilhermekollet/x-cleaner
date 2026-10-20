@@ -76,28 +76,52 @@ svg { width: 18px; height: 18px; flex-shrink: 0; fill: none; stroke: currentColo
 h1 { margin: 0; font-size: 17px; line-height: 1.1; font-weight: 800; letter-spacing: -0.02em; }
 .tagline { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
 
-.lang { display: flex; padding: 2px; border: 1px solid var(--line); border-radius: 999px; }
-.lang button {
-  border: 0; background: none; color: var(--muted); cursor: pointer;
-  font: 700 11px/1 "Geist", sans-serif; padding: 6px 9px; border-radius: 999px;
+/* EN | PT: a thumb slides under the chosen language. */
+.lang { position: relative; display: grid; grid-template-columns: 1fr 1fr; padding: 2px; border: 1px solid var(--line); border-radius: 999px; }
+.lang .thumb {
+  position: absolute; top: 2px; bottom: 2px; left: 2px; width: calc(50% - 2px);
+  border-radius: 999px; background: var(--pill);
+  /* Its slide comes from the view transition (its own group), not a CSS transition, so it moves once. */
+  view-transition-name: lang-thumb;
 }
-.lang button[aria-pressed="true"] { background: var(--pill); color: var(--pill-fg); }
+.lang[data-lang="pt"] .thumb { translate: 100% 0; }
+.lang button {
+  position: relative; border: 0; background: none; color: var(--muted); cursor: pointer;
+  font: 700 11px/1 "Geist", sans-serif; padding: 6px 9px; border-radius: 999px;
+  transition: color 0.25s;
+}
+.lang button[aria-pressed="true"] { color: var(--pill-fg); }
+
+/* Switching language: the copy fades and un-blurs into the new language (View Transitions),
+   while the thumb glides to its new place. */
+::view-transition-old(root) { animation: lang-out 0.16s ease-in both; }
+::view-transition-new(root) { animation: lang-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) 0.06s both; }
+::view-transition-group(lang-thumb) { animation-duration: 0.32s; animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1); }
+@keyframes lang-out { to { opacity: 0; filter: blur(3px); } }
+@keyframes lang-in { from { opacity: 0; filter: blur(3px); translate: 0 3px; } }
 
 /* ---------- Status ---------- */
 .status {
   display: flex; align-items: center; gap: 8px;
-  margin: 12px 0 2px; padding: 8px 12px;
+  margin: 16px 0 0; padding: 8px 12px;
   border: 1px solid var(--line); border-radius: 12px;
   font-size: 12.5px; color: var(--muted);
 }
 .status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex-shrink: 0; }
+/* The status line speaks up only when something needs attention; when all is well it stays out of
+   the way. */
+.status:not([data-state="out"]) { display: none; }
 .status[data-state="in"] { color: var(--fg); }
 .status[data-state="in"] .dot { background: var(--fg); }
 .status[data-state="out"] { border-color: color-mix(in srgb, var(--danger) 45%, var(--line)); color: var(--fg); }
 .status[data-state="out"] .dot { background: var(--danger); }
 
 /* ---------- Blocks ---------- */
-.block { margin-top: 12px; }
+/* Vertical rhythm: 18px between sections, 8px from a section title to its content; "More options"
+   and the main button sit closer, since they belong to the section above them. */
+#setup { margin-top: 18px; }
+.block { margin-top: 18px; }
+#setup > .block:first-child { margin-top: 0; }
 h2 { margin: 0 0 8px; font-size: 13px; font-weight: 700; letter-spacing: -0.005em; }
 .hint { margin: 8px 0 0; font-size: 12px; color: var(--muted); }
 
@@ -106,15 +130,16 @@ h2 { margin: 0 0 8px; font-size: 13px; font-weight: 700; letter-spacing: -0.005e
 .choice {
   position: relative; display: flex; flex-direction: column; gap: 3px;
   padding: 10px 12px; border: 1px solid var(--line); border-radius: 14px; cursor: pointer;
-  background: var(--surface); transition: border-color 0.15s, background 0.15s;
+  background: transparent; color: var(--muted); transition: border-color 0.15s, background 0.15s, color 0.15s;
 }
 .choice input { position: absolute; opacity: 0; pointer-events: none; }
 .choice-title { display: flex; align-items: center; gap: 7px; }
-.choice svg { width: 17px; height: 17px; color: var(--muted); }
+.choice svg { width: 17px; height: 17px; }
 .choice b { font-size: 13.5px; }
 .choice small { font-size: 11.5px; line-height: 1.35; color: var(--muted); }
-.choice:has(input:checked) { border-color: var(--fg); box-shadow: inset 0 0 0 0.5px var(--fg); }
-.choice:has(input:checked) svg { color: var(--fg); }
+.choice:hover { background: var(--mist); }
+/* The chosen source: filled with the selection grey, its icon and title lit; no border. */
+.choice:has(input:checked) { background: var(--fog); border-color: var(--fog); color: var(--fg); }
 .choice:has(input:focus-visible) { outline: 2px solid var(--fg); outline-offset: 2px; }
 
 .archive { margin-top: 10px; }
@@ -137,7 +162,9 @@ h2 { margin: 0 0 8px; font-size: 13px; font-weight: 700; letter-spacing: -0.005e
   content: ""; width: 7px; height: 7px; border-radius: 50%;
   border: 1.5px solid currentColor; transition: all 0.15s;
 }
-.chip input:checked + span { border-color: var(--fg); color: var(--fg); }
+.chip:hover span { background: var(--mist); }
+/* A chosen type, like the chosen source: filled with the selection grey, its dot and label lit. */
+.chip input:checked + span { background: var(--fog); border-color: var(--fog); color: var(--fg); }
 .chip input:checked + span::before { background: var(--fg); border-color: var(--fg); }
 .chip input:focus-visible + span { outline: 2px solid var(--fg); outline-offset: 2px; }
 
@@ -152,27 +179,8 @@ h2 { margin: 0 0 8px; font-size: 13px; font-weight: 700; letter-spacing: -0.005e
 .segmented input:checked + span { background: var(--bg); color: var(--fg); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15); }
 .segmented input:focus-visible + span { outline: 2px solid var(--fg); outline-offset: 1px; }
 
-/* Pace and the test switch, side by side. */
-.pair { display: grid; grid-template-columns: 1fr auto; gap: 14px; align-items: start; }
-.toggle { display: block; cursor: pointer; }
-.toggle-row { display: flex; align-items: center; gap: 8px; height: 37px; }
-.toggle small { font-size: 12px; color: var(--muted); white-space: nowrap; }
-.switch {
-  appearance: none; flex-shrink: 0; width: 40px; height: 24px; margin: 0;
-  border-radius: 999px; background: var(--line); position: relative; cursor: pointer; transition: background 0.2s;
-}
-.switch::after {
-  content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px;
-  border-radius: 50%; background: #fff; transition: translate 0.2s; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-}
-.switch:checked { background: var(--fg); }
-.switch:checked::after { background: var(--bg); }
-.switch:checked::after { translate: 16px 0; }
-.switch:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
-
-/* Filters. */
 /* More options: a quiet disclosure line; its fields open below it. */
-.filters { margin-top: 8px; }
+.filters.block { margin-top: 10px; }
 .filters summary { cursor: pointer; padding: 4px 0; font-weight: 600; font-size: 12.5px; color: var(--muted); list-style: none; display: flex; align-items: center; gap: 6px; }
 .filters summary:hover { color: var(--fg); }
 .filters summary::-webkit-details-marker { display: none; }
@@ -192,7 +200,7 @@ input[type="text"]:focus, input[type="date"]:focus { outline: none; border-color
 
 /* Permanent-deletion confirmation, in X's amber. */
 .confirm {
-  margin-top: 12px; padding: 10px 14px; border-radius: 14px;
+  margin-top: 18px; padding: 10px 14px; border-radius: 14px;
   border: 1px solid var(--line);
 }
 .confirm .field { color: var(--fg); }
@@ -220,7 +228,7 @@ input[type="text"]:focus, input[type="date"]:focus { outline: none; border-color
 .btn:active:not(:disabled) { scale: 0.97; }
 .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .btn-block { width: 100%; }
-.btn-lg { height: 44px; font-size: 15px; margin-top: 12px; }
+.btn-lg { height: 44px; font-size: 15px; margin-top: 10px; }
 .btn-outline { background: transparent; border-color: var(--line); }
 .btn-solid { background: var(--pill); color: var(--pill-fg); }
 .btn-danger { background: var(--pill); color: var(--pill-fg); }
@@ -228,7 +236,7 @@ input[type="text"]:focus, input[type="date"]:focus { outline: none; border-color
 label.btn { position: relative; }
 
 /* ---------- Running ---------- */
-.run { margin-top: 16px; padding: 18px 16px; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); }
+.run { margin-top: 18px; padding: 18px 16px; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); }
 .counters { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .counters div { display: flex; flex-direction: column; }
 .counters b { font-size: 26px; line-height: 1.1; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
@@ -245,9 +253,20 @@ label.btn { position: relative; }
 .run-status { margin: 10px 0 0; font-size: 13px; color: var(--muted); min-height: 19px; }
 .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
 .actions .btn-outline { flex: 1; }
+.actions .grow { flex: 1.6; }
+
+/* After a passed test: a quiet note above the confirmation for the full run. */
+.banner {
+  display: flex; align-items: center; gap: 8px; margin: 14px 0 0; padding: 8px 12px;
+  border-radius: 12px; background: var(--fog); font-size: 12.5px;
+}
+.banner svg { width: 16px; height: 16px; stroke-width: 2.2; }
+.banner + .confirm { margin-top: 8px; }
 
 /* ---------- Footer ---------- */
-.foot { margin-top: 12px; text-align: center; font-size: 11.5px; color: var(--muted); }
+.foot { margin-top: 16px; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 11.5px; color: var(--muted); }
+.foot .private { display: inline-flex; align-items: center; gap: 4px; }
+.foot .private svg { width: 12px; height: 12px; stroke-width: 2; }
 .foot a { color: var(--fg); text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 2px; font-weight: 600; }
 
 @media (prefers-reduced-motion: reduce) {

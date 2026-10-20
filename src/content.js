@@ -43,7 +43,7 @@
     try {
       switch (msg && msg.type) {
         case "ping":
-          sendResponse({ ok: true, signedIn: isSignedIn(), account: account() });
+          sendResponse({ ok: true, signedIn: isSignedIn(), account: account(), profile: profilePath() });
           return;
         case "start":
           sendResponse(begin(msg.config));
@@ -81,6 +81,11 @@
     } catch {
       return false;
     }
+  }
+  // The signed-in profile's path (/handle), from x.com's own navigation link, so the popup can
+  // open it after a test run.
+  function profilePath() {
+    return document.querySelector('a[data-testid="AppTabBar_Profile_Link"]')?.getAttribute("href") || null;
   }
   function account() {
     try {
