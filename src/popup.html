@@ -3,100 +3,140 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
     <title>X Cleaner</title>
     <link rel="stylesheet" href="popup.css" />
   </head>
   <body>
-    <header class="head">
-      <img src="../icons/icon-48.png" width="24" height="24" alt="" />
-      <h1>X Cleaner</h1>
+    <header class="top">
+      <div class="brand">
+        <svg class="mark" viewBox="0 0 48 48" aria-hidden="true" fill="none">
+          <path d="M34 11 L22 27" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" />
+          <path d="M14 29 h12 l4 9 h-20 z" fill="currentColor" opacity="0.5" />
+          <path d="M14 29 h12 v3 h-12 z" fill="currentColor" />
+          <path d="M11 38 v-2 M16 38 v-3 M21 38 v-2 M26 38 v-3 M31 38 v-2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+          <circle cx="33" cy="31" r="1.4" fill="currentColor" />
+          <circle cx="37" cy="34" r="1.1" fill="currentColor" />
+          <circle cx="35" cy="38" r="1" fill="currentColor" />
+        </svg>
+        <div>
+          <h1>X Cleaner</h1>
+          <p class="tagline" data-i18n="tagline"></p>
+        </div>
+      </div>
+      <div class="lang" role="group" aria-label="Language">
+        <button type="button" data-lang="en">EN</button>
+        <button type="button" data-lang="pt">PT</button>
+      </div>
     </header>
 
-    <p id="account" class="account" data-state="unknown">Checking the current tab…</p>
+    <p id="account" class="status" data-state="unknown">
+      <span class="dot" aria-hidden="true"></span>
+      <span id="accountText" data-i18n="status.checking"></span>
+    </p>
 
-    <section class="card" id="controls">
-      <fieldset class="source">
-        <legend>What to read</legend>
-        <label class="radio">
-          <input type="radio" name="source" value="timeline" checked />
-          <span><b>Recent, no file</b> — reads your profile. Reaches the most recent
-          posts the site still lists.</span>
-        </label>
-        <label class="radio">
-          <input type="radio" name="source" value="archive" />
-          <span><b>Archive file</b> — reaches everything, including old posts. Use the
-          <code>.zip</code> from <i>Settings → Your account → Download an archive of your data</i>.</span>
-        </label>
+    <main id="setup">
+      <section class="block">
+        <h2 data-i18n="source.title"></h2>
+        <div class="choices">
+          <label class="choice">
+            <input type="radio" name="source" value="timeline" checked />
+            <span class="choice-title"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10" /></svg><b data-i18n="source.timeline"></b></span>
+            <small data-i18n="source.timelineHint"></small>
+          </label>
+          <label class="choice">
+            <input type="radio" name="source" value="archive" />
+            <span class="choice-title"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 7.5h17v11a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z" /><path d="M2.5 4h19v3.5h-19zM10 11.5h4" /></svg><b data-i18n="source.archive"></b></span>
+            <small data-i18n="source.archiveHint"></small>
+          </label>
+        </div>
+
         <div id="archiveRow" class="archive hidden">
           <!-- In the toolbar popup the file dialog would close the popup (Chrome on macOS and
                Linux), so there the picker opens this same page in a tab instead. -->
-          <button id="pickInTab" type="button" class="ghost hidden">Choose the archive file in a tab</button>
-          <input type="file" id="archiveFile" accept=".zip,.js" multiple />
-          <p id="archiveSummary" class="muted"></p>
+          <button id="pickInTab" type="button" class="btn btn-outline btn-block hidden">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4" /></svg>
+            <span data-i18n="archive.pickInTab"></span>
+          </button>
+          <label id="pickFile" class="btn btn-outline btn-block hidden">
+            <input type="file" id="archiveFile" accept=".zip,.js" multiple />
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" /></svg>
+            <span data-i18n="archive.pick"></span>
+          </label>
+          <p class="hint tab-only" data-i18n="archive.help"></p>
+          <div id="archiveSummary" class="summary hidden"></div>
         </div>
-      </fieldset>
+      </section>
 
-      <fieldset>
-        <legend>What to delete</legend>
-        <label class="check"><input type="checkbox" id="t-post" checked /> Posts</label>
-        <label class="check"><input type="checkbox" id="t-reply" checked /> Replies</label>
-        <label class="check"><input type="checkbox" id="t-repost" checked /> Reposts</label>
-        <label class="check"><input type="checkbox" id="t-like" /> Likes <span class="muted">(archive only)</span></label>
-      </fieldset>
+      <section class="block needs-setup">
+        <h2 data-i18n="types.title"></h2>
+        <div class="chips">
+          <label class="chip"><input type="checkbox" id="t-post" checked /><span data-i18n="types.post"></span></label>
+          <label class="chip"><input type="checkbox" id="t-reply" checked /><span data-i18n="types.reply"></span></label>
+          <label class="chip"><input type="checkbox" id="t-repost" checked /><span data-i18n="types.repost"></span></label>
+          <label class="chip"><input type="checkbox" id="t-like" /><span data-i18n="types.like"></span></label>
+        </div>
+        <p id="likeHint" class="hint hidden" data-i18n="types.likeHint"></p>
+      </section>
 
-      <details class="filters">
-        <summary>Filters (optional)</summary>
-        <label>Keyword <input type="text" id="f-keyword" placeholder="only items containing…" /></label>
-        <label>From date <input type="date" id="f-since" /></label>
-        <label>Until date <input type="date" id="f-until" /></label>
-        <label>Keep these IDs
-          <input type="text" id="f-keep" placeholder="e.g. your pinned post, comma-separated" />
+      <div class="block pair needs-setup">
+        <section>
+          <h2 data-i18n="speed.title"></h2>
+          <div class="segmented" role="radiogroup">
+            <label><input type="radio" name="speed" value="cautious" /><span data-i18n="speed.cautious"></span></label>
+            <label><input type="radio" name="speed" value="normal" checked /><span data-i18n="speed.normal"></span></label>
+            <label><input type="radio" name="speed" value="fast" /><span data-i18n="speed.fast"></span></label>
+          </div>
+        </section>
+        <label class="toggle">
+          <h2 data-i18n="test.title"></h2>
+          <span class="toggle-row"><input type="checkbox" id="test" class="switch" checked /><small data-i18n="test.hint"></small></span>
         </label>
+      </div>
+
+      <details class="block filters needs-setup">
+        <summary><span data-i18n="filters.title"></span></summary>
+        <label class="field"><span data-i18n="filters.keyword"></span><input type="text" id="f-keyword" data-i18n-placeholder="filters.keywordPh" /></label>
+        <div class="field-row">
+          <label class="field"><span data-i18n="filters.since"></span><input type="date" id="f-since" /></label>
+          <label class="field"><span data-i18n="filters.until"></span><input type="date" id="f-until" /></label>
+        </div>
+        <label class="field"><span data-i18n="filters.keep"></span><input type="text" id="f-keep" data-i18n-placeholder="filters.keepPh" /></label>
+        <label class="check quiet"><input type="checkbox" id="resumePrev" /><span><span data-i18n="resume"></span> <small data-i18n="resumeHint"></small></span></label>
       </details>
 
-      <fieldset class="row">
-        <label>Speed
-          <select id="speed">
-            <option value="cautious">Cautious</option>
-            <option value="normal" selected>Normal</option>
-            <option value="fast">Fast</option>
-          </select>
-        </label>
-        <label class="check test"><input type="checkbox" id="test" checked /> Test run (first 5 only)</label>
-      </fieldset>
+      <section class="confirm needs-setup">
+        <label class="check"><input type="checkbox" id="ack" /><span data-i18n="confirm.ack"></span></label>
+        <label id="typeRow" class="type-row hidden"><span id="typeLabel"></span><input type="text" id="confirmWord" autocomplete="off" spellcheck="false" /></label>
+      </section>
 
-      <fieldset class="confirm">
-        <label class="check"><input type="checkbox" id="ack" /> I understand deletion is permanent — there is no undo.</label>
-        <label id="typeRow" class="typeto hidden">Type <b>DELETE</b> to enable the full run
-          <input type="text" id="confirmWord" autocomplete="off" />
-        </label>
-      </fieldset>
+      <button id="start" type="button" class="btn btn-danger btn-block btn-lg needs-setup" disabled></button>
+    </main>
 
-      <div class="actions">
-        <button id="start" class="danger" disabled>Start</button>
-        <button id="pause" class="hidden">Pause</button>
-        <button id="resume" class="hidden">Resume</button>
-        <button id="stop" class="ghost hidden">Stop</button>
-      </div>
-      <label class="check resume"><input type="checkbox" id="resumePrev" /> Continue a previous run (skip what was already deleted)</label>
-    </section>
-
-    <section id="progress" class="card progress hidden">
+    <section id="progress" class="run hidden">
       <div class="counters">
-        <span><b id="p-deleted">0</b> deleted</span>
-        <span><b id="p-gone">0</b> already gone</span>
-        <span><b id="p-failures">0</b> failures</span>
+        <div><b id="p-deleted" class="ok">0</b><span data-i18n="run.deleted"></span></div>
+        <div><b id="p-gone">0</b><span data-i18n="run.gone"></span></div>
+        <div><b id="p-failures" class="bad">0</b><span data-i18n="run.failures"></span></div>
       </div>
-      <p id="p-status" class="muted"></p>
-      <progress id="p-bar" class="hidden" max="100" value="0"></progress>
+      <div id="p-bar" class="bar"><i></i></div>
+      <p id="p-status" class="run-status"></p>
+      <div class="actions">
+        <button id="pause" type="button" class="btn btn-outline" data-i18n="run.pause"></button>
+        <button id="resume" type="button" class="btn btn-outline hidden" data-i18n="run.resume"></button>
+        <button id="stop" type="button" class="btn btn-outline" data-i18n="run.stop"></button>
+        <button id="again" type="button" class="btn btn-solid btn-block hidden" data-i18n="run.again"></button>
+      </div>
     </section>
 
     <footer class="foot">
-      <a href="https://github.com/guilhermekollet/x-cleaner" target="_blank" rel="noopener">Open source</a>
-      · Runs only in your browser
+      <span data-i18n="foot.private"></span>
+      ·
+      <a href="https://github.com/guilhermekollet/x-cleaner" target="_blank" rel="noopener" data-i18n="foot.source"></a>
     </footer>
 
     <script src="archive.js"></script>
+    <script src="i18n.js"></script>
     <script src="popup.js"></script>
   </body>
 </html>

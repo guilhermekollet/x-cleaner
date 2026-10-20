@@ -1,7 +1,8 @@
-// The popup: picks the x.com tab, reads the archive (when used), builds the run
-// config, and drives the content script that does the work. It never touches x.com
-// directly — it only sends messages to the tab and polls it for status.
+// The popup: picks the x.com tab, reads the archive (when used), builds the run config, and
+// drives the content script that does the work. It never touches x.com directly — it only sends
+// messages to the tab and polls it for status. Copy comes from XI18n (English or Portuguese).
 const $ = (id) => document.getElementById(id);
+const { t } = XI18n;
 
 // The page runs either as the toolbar popup or, for picking the archive file, in a tab of its
 // own. In a tab, `?tab=` names the x.com tab it drives.
@@ -10,35 +11,15 @@ const inTab = pinnedTab !== null;
 
 let tabId = null;
 let signedIn = false;
+let accountKey = "status.checking"; // last status message, re-rendered on a language change
 let archiveItems = null; // parsed items, when the archive source is used
+let archiveState = null; // "reading" | "error" | { total, by } — for re-rendering the summary
+let lastRender = null; // last snapshot shown while running
 let polling = null;
 
-const els = {
-  account: $("account"),
-  controls: $("controls"),
-  archiveRow: $("archiveRow"),
-  archiveFile: $("archiveFile"),
-  archiveSummary: $("archiveSummary"),
-  start: $("start"),
-  pause: $("pause"),
-  resume: $("resume"),
-  stop: $("stop"),
-  progress: $("progress"),
-  ack: $("ack"),
-  test: $("test"),
-  typeRow: $("typeRow"),
-  confirmWord: $("confirmWord"),
-};
-
-function sourceValue() {
-  return document.querySelector('input[name="source"]:checked').value;
-}
-function selectedTypes() {
-  return { post: $("t-post").checked, reply: $("t-reply").checked, repost: $("t-repost").checked, like: $("t-like").checked };
-}
-function anyType() {
-  return Object.values(selectedTypes()).some(Boolean);
-}
+const sourceValue = () => document.querySelector('input[name="source"]:checked').value;
+const speedValue = () => document.querySelector('input[name="speed"]:checked').value;
+const selectedTypes = () => ({ post: $("t-post").checked, reply: $("t-reply").checked, repost: $("t-repost").checked, like: $("t-like").checked });
 
 async function send(type, payload) {
   try {
@@ -48,108 +29,122 @@ async function send(type, payload) {
   }
 }
 
+// --- Language ----------------------------------------------------------------
+for (const b of document.querySelectorAll(".lang button")) b.addEventListener("click", () => XI18n.set(b.dataset.lang));
+XI18n.onChange(renderText);
+
+// Re-renders every piece of copy that depends on state, in the current language.
+function renderText() {
+  for (const b of document.querySelectorAll(".lang button")) b.setAttribute("aria-pressed", String(b.dataset.lang === XI18n.lang));
+  $("accountText").textContent = t(accountKey);
+  $("typeLabel").textContent = t("confirm.type", { word: t("confirm.word") });
+  $("start").textContent = $("test").checked ? t("start.test") : t("start.all");
+  renderSummary();
+  if (lastRender) render(lastRender.s, lastRender.done);
+}
+
+// --- Setup -------------------------------------------------------------------
 async function init() {
   document.body.classList.toggle("in-tab", inTab);
   // The file dialog works in a tab; from the popup, offer to continue there.
   $("pickInTab").classList.toggle("hidden", inTab);
-  els.archiveFile.classList.toggle("hidden", !inTab);
+  $("pickFile").classList.toggle("hidden", !inTab);
+  XI18n.apply();
+  renderText();
+  await XI18n.load();
+
   const tab = inTab
     ? await chrome.tabs.get(pinnedTab).catch(() => null)
     : (await chrome.tabs.query({ active: true, currentWindow: true }))[0];
-  if (!tab || !/^https:\/\/(x|twitter)\.com\//.test(tab.url || "")) {
-    setAccount("out", "Open x.com in this tab and sign in, then reopen this popup.");
-    disableAll();
-    return;
-  }
+  if (!tab || !/^https:\/\/(x|twitter)\.com\//.test(tab.url || "")) return setAccount("out", "status.notX");
   tabId = tab.id;
   const pong = await send("ping");
-  if (!pong) {
-    setAccount("out", "Reload the x.com tab once (the extension was just installed), then reopen this popup.");
-    disableAll();
-    return;
-  }
+  if (!pong) return setAccount("out", "status.reload");
   signedIn = pong.signedIn;
-  if (!signedIn) {
-    setAccount("out", "You are on x.com but not signed in. Sign in and reopen this popup.");
-    disableAll();
-    return;
-  }
-  setAccount("in", "Signed in. This runs on the account open in this tab.");
+  if (!signedIn) return setAccount("out", "status.signedOut");
+  setAccount("in", "status.ready");
   refreshStart();
-  // If a run is already going (popup was reopened), jump straight to progress.
+  // If a run is already going (the popup was reopened), go straight to progress.
   const st = await send("status");
   if (st && st.running) enterRunning();
 }
 
-function setAccount(state, text) {
-  els.account.dataset.state = state;
-  els.account.textContent = text;
-}
-function disableAll() {
-  els.start.disabled = true;
+function setAccount(state, key) {
+  accountKey = key;
+  $("account").dataset.state = state;
+  $("accountText").textContent = t(key);
+  refreshStart();
 }
 
-// --- Archive reading ---------------------------------------------------------
+// --- Archive reading -----------------------------------------------------------
 $("pickInTab").addEventListener("click", async () => {
   if (tabId === null) return;
   await chrome.tabs.create({ url: chrome.runtime.getURL(`src/popup.html?tab=${tabId}`) });
   window.close();
 });
 
-els.archiveFile.addEventListener("change", async () => {
+$("archiveFile").addEventListener("change", async () => {
   archiveItems = null;
-  els.archiveSummary.textContent = "Reading…";
+  archiveState = "reading";
+  renderSummary();
   try {
-    const items = await XArchive.read(els.archiveFile.files);
-    archiveItems = items;
+    const items = await XArchive.read($("archiveFile").files);
     const by = { post: 0, reply: 0, repost: 0, like: 0 };
     for (const it of items) by[it.kind] = (by[it.kind] || 0) + 1;
-    els.archiveSummary.textContent =
-      `${items.length} items: ${by.post} posts, ${by.reply} replies, ${by.repost} reposts` +
-      (by.like ? `, ${by.like} likes` : "");
-  } catch (e) {
-    els.archiveSummary.textContent = "Could not read that file. Pick the .zip, or the data/tweets*.js files.";
+    archiveItems = items;
+    archiveState = { total: items.length, by };
+  } catch {
+    archiveState = "error";
   }
+  renderSummary();
   refreshStart();
 });
 
-// --- Enabling the Start button ----------------------------------------------
-for (const id of ["ack", "test", "confirmWord", "t-post", "t-reply", "t-repost", "t-like"])
-  $(id).addEventListener("input", refreshStart);
-for (const r of document.querySelectorAll('input[name="source"]'))
-  r.addEventListener("change", () => {
-    els.archiveRow.classList.toggle("hidden", sourceValue() !== "archive");
-    refreshStart();
-  });
-els.test.addEventListener("change", () => {
-  els.typeRow.classList.toggle("hidden", els.test.checked);
+function renderSummary() {
+  const box = $("archiveSummary");
+  box.classList.toggle("hidden", !archiveState);
+  if (!archiveState) return;
+  if (archiveState === "reading") return void (box.innerHTML = `<span class="hint">${t("archive.reading")}</span>`);
+  if (archiveState === "error") return void (box.innerHTML = `<span class="error">${t("archive.error")}</span>`);
+  const fmt = new Intl.NumberFormat(XI18n.lang === "pt" ? "pt-BR" : "en-US");
+  const tags = ["post", "reply", "repost", "like"]
+    .filter((k) => archiveState.by[k])
+    .map((k) => `<span class="tag"><b>${fmt.format(archiveState.by[k])}</b> ${t("types." + k)}</span>`)
+    .join("");
+  box.innerHTML = `<span class="total">${t("archive.items", { n: fmt.format(archiveState.total) })}</span>${tags}`;
+}
+
+// --- Enabling Start --------------------------------------------------------------
+for (const id of ["ack", "confirmWord", "t-post", "t-reply", "t-repost", "t-like"]) $(id).addEventListener("input", refreshStart);
+for (const r of document.querySelectorAll('input[name="source"]')) r.addEventListener("change", refreshStart);
+$("test").addEventListener("change", () => {
+  renderText();
   refreshStart();
 });
 
 function confirmed() {
-  if (!els.ack.checked) return false;
-  if (els.test.checked) return true; // a 5-item test needs only the acknowledgement
-  return els.confirmWord.value.trim().toUpperCase() === "DELETE";
+  if (!$("ack").checked) return false;
+  if ($("test").checked) return true; // a 5-item test needs only the acknowledgement
+  return XI18n.confirmWords().includes($("confirmWord").value.trim().toUpperCase());
 }
 
 function refreshStart() {
-  const ready =
-    signedIn &&
-    anyType() &&
-    confirmed() &&
-    (sourceValue() === "timeline" || (archiveItems && archiveItems.length));
-  els.start.disabled = !ready;
+  const archive = sourceValue() === "archive";
+  // In the toolbar popup the archive run is set up in a tab, so the popup keeps only the picker.
+  document.body.classList.toggle("archive-mode", archive);
+  $("archiveRow").classList.toggle("hidden", !archive);
+  $("typeRow").classList.toggle("hidden", $("test").checked);
+  $("likeHint").classList.toggle("hidden", !($("t-like").checked && !archive));
+  const types = selectedTypes();
+  const anyType = archive ? Object.values(types).some(Boolean) : types.post || types.reply || types.repost;
+  const ready = signedIn && anyType && confirmed() && (!archive || (archiveItems && archiveItems.length));
+  $("start").disabled = !ready;
 }
 
-// --- Running -----------------------------------------------------------------
-function parseKeep() {
-  return ($("f-keep").value || "")
-    .split(/[\s,]+/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
+// --- Running -------------------------------------------------------------------
+const parseKeep = () => ($("f-keep").value || "").split(/[\s,]+/).map((s) => s.trim()).filter(Boolean);
 
-els.start.addEventListener("click", async () => {
+$("start").addEventListener("click", async () => {
   const types = selectedTypes();
   if (types.like && sourceValue() === "timeline") types.like = false; // likes need the archive
   const config = {
@@ -160,38 +155,40 @@ els.start.addEventListener("click", async () => {
     since: $("f-since").value ? new Date($("f-since").value).toISOString() : null,
     until: $("f-until").value ? new Date($("f-until").value + "T23:59:59").toISOString() : null,
     keepIds: parseKeep(),
-    speed: $("speed").value,
-    limit: els.test.checked ? 5 : "all",
+    speed: speedValue(),
+    limit: $("test").checked ? 5 : "all",
     resume: $("resumePrev").checked,
   };
   const res = await send("start", { config });
-  if (!res || !res.ok) {
-    els.account.textContent = res && res.error === "already-running" ? "A run is already in progress." : "Could not start — reload the x.com tab and try again.";
-    return;
-  }
+  if (!res || !res.ok) return setAccount("out", res && res.error === "already-running" ? "run.alreadyRunning" : "run.couldNotStart");
   enterRunning();
 });
 
-els.pause.addEventListener("click", async () => {
+$("pause").addEventListener("click", async () => {
   await send("pause");
-  els.pause.classList.add("hidden");
-  els.resume.classList.remove("hidden");
+  $("pause").classList.add("hidden");
+  $("resume").classList.remove("hidden");
 });
-els.resume.addEventListener("click", async () => {
+$("resume").addEventListener("click", async () => {
   await send("resume");
-  els.resume.classList.add("hidden");
-  els.pause.classList.remove("hidden");
+  $("resume").classList.add("hidden");
+  $("pause").classList.remove("hidden");
 });
-els.stop.addEventListener("click", async () => {
-  await send("stop");
+$("stop").addEventListener("click", () => send("stop"));
+$("again").addEventListener("click", () => {
+  lastRender = null;
+  $("progress").classList.add("hidden");
+  $("setup").classList.remove("hidden");
+  for (const id of ["pause", "stop"]) $(id).classList.remove("hidden");
+  $("again").classList.add("hidden");
+  refreshStart();
 });
 
 function enterRunning() {
-  els.start.classList.add("hidden");
-  els.pause.classList.remove("hidden");
-  els.stop.classList.remove("hidden");
-  els.progress.classList.remove("hidden");
-  for (const el of els.controls.querySelectorAll("input, select, button#start")) el.disabled = true;
+  $("setup").classList.add("hidden");
+  $("progress").classList.remove("hidden");
+  for (const id of ["pause", "stop"]) $(id).classList.remove("hidden");
+  for (const id of ["resume", "again"]) $(id).classList.add("hidden");
   if (!polling) polling = setInterval(poll, 1000);
   poll();
 }
@@ -199,49 +196,50 @@ function enterRunning() {
 function exitRunning() {
   clearInterval(polling);
   polling = null;
-  els.pause.classList.add("hidden");
-  els.resume.classList.add("hidden");
-  els.stop.classList.add("hidden");
+  for (const id of ["pause", "resume", "stop"]) $(id).classList.add("hidden");
+  $("again").classList.remove("hidden");
 }
 
 async function poll() {
   const st = await send("status");
   if (!st) return;
-  render(st.snapshot || {});
   if (!st.running && st.finished) {
     render(st.finished, true);
     exitRunning();
-  }
+  } else render(st.snapshot || {}, false);
 }
 
 function render(s, done) {
-  $("p-deleted").textContent = s.deleted || 0;
-  $("p-gone").textContent = s.gone || 0;
-  $("p-failures").textContent = s.failures || 0;
+  lastRender = { s, done };
+  const fmt = new Intl.NumberFormat(XI18n.lang === "pt" ? "pt-BR" : "en-US");
+  $("p-deleted").textContent = fmt.format(s.deleted || 0);
+  $("p-gone").textContent = fmt.format(s.gone || 0);
+  $("p-failures").textContent = fmt.format(s.failures || 0);
+
+  // Progress counts this run only, so a resumed run starts from zero against what is left.
+  const acted = (s.deleted || 0) + (s.gone || 0) + (s.failures || 0);
+  const hasTotal = s.source === "archive" && s.total > 0;
 
   let msg;
-  if (s.fatal) msg = "Stopped: " + friendlyFatal(s.fatal);
-  else if (done) msg = s.stopped ? "Stopped. You can resume later." : "Done.";
-  else if (s.waiting || s.waitUntil) msg = "X limited the pace — waiting " + secsUntil(s.waitUntil) + "s, then continuing.";
-  else if (s.batchUntil) msg = "Batch pause — resuming in " + secsUntil(s.batchUntil) + "s.";
-  else if (s.paused) msg = "Paused.";
-  else msg = s.source === "archive" && s.total ? `Working… ${s.processed}/${s.total}.` : "Working…";
+  if (s.fatal) msg = t("run.stoppedWith", { reason: friendlyFatal(s.fatal) });
+  else if (done) msg = s.stopped ? t("run.stopped") : t("run.done");
+  else if (s.waiting || s.waitUntil) msg = t("run.limited", { s: secsUntil(s.waitUntil) });
+  else if (s.batchUntil) msg = t("run.batch", { s: secsUntil(s.batchUntil) });
+  else if (s.paused) msg = t("run.paused");
+  else msg = hasTotal ? `${t("run.working")} ${t("run.progress", { done: fmt.format(acted), total: fmt.format(s.total) })}` : t("run.working");
   $("p-status").textContent = msg;
 
   const bar = $("p-bar");
-  if (s.source === "archive" && s.total) {
-    bar.classList.remove("hidden");
-    bar.max = s.total;
-    bar.value = s.processed || 0;
-  } else bar.classList.add("hidden");
+  bar.classList.toggle("done", !!done && !s.fatal && !s.stopped);
+  bar.classList.toggle("indeterminate", !done && !hasTotal);
+  bar.firstElementChild.style.width = hasTotal ? `${Math.min(100, (acted / s.total) * 100)}%` : "";
 }
 
-function secsUntil(t) {
-  return t ? Math.max(0, Math.round((t - Date.now()) / 1000)) : "…";
-}
+const secsUntil = (ts) => (ts ? Math.max(0, Math.round((ts - Date.now()) / 1000)) : "…");
+
 function friendlyFatal(f) {
-  if (/404|endpoint/.test(f)) return "X changed its internal API. The extension needs an update — please open an issue.";
-  if (/session|auth|403|401/.test(f)) return "X rejected the session. Reload x.com, make sure you're signed in, and try again.";
+  if (/404|endpoint/.test(f)) return t("run.fatalApi");
+  if (/session|auth|403|401/.test(f)) return t("run.fatalSession");
   return f;
 }
 
