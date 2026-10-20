@@ -1,6 +1,7 @@
 #!/bin/bash
-# Builds the unpacked extension into a .zip ready to upload to the Chrome Web Store,
-# or to attach to a GitHub release for manual install. Regenerates the icons first.
+# Builds the unpacked extension into a .zip ready to install, upload to the Chrome Web Store or
+# attach to a GitHub release. It writes two copies: one named after the version, and
+# x-cleaner.zip, the stable name the website's download button points at.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -12,5 +13,6 @@ rm -rf dist
 mkdir -p dist
 
 zip -r -q "$out" manifest.json src icons -x '*.DS_Store'
-echo "Built $out"
-shasum -a 256 "$out" | tee "${out}.sha256"
+cp "$out" dist/x-cleaner.zip
+echo "Built $out (and dist/x-cleaner.zip)"
+(cd dist && shasum -a 256 "x-cleaner-${version}.zip" | tee "x-cleaner-${version}.zip.sha256")
