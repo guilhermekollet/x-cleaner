@@ -49,6 +49,8 @@ you are signed in to. Nothing is uploaded, and you never hand your account to a 
 - **A test run** that stops after 5, so you can confirm it deletes the right things first.
 - **Pause, resume and stop**, and a saved progress list so an interrupted run continues where it
   left off instead of starting over.
+- **English and Portuguese (Brazil)**: switch at the top of the popup; it starts in your browser's
+  language and remembers your choice. Light and dark follow your system.
 
 ## Install
 
@@ -138,7 +140,11 @@ src/
   engine.js            The run: ordering, batching, pacing, rate-limit waits, pause/resume,
                        progress saved for resuming
   content.js           Runs on the x.com tab; holds the engine and answers the popup's messages
-  popup.html/.css/.js  The toolbar popup: options, the permanent-deletion confirmation, progress
+  popup.html/.css/.js  The toolbar popup: options, the permanent-deletion confirmation, progress.
+                       With an archive, it continues in a tab, where the file dialog works
+  i18n.js              The popup's copy in English and Portuguese, and the language switch
+_locales/              The extension's name and description in English and Portuguese
+fonts/                 Geist, bundled (SIL Open Font License), so the popup fetches nothing
 icons/                 Generated PNG icons (scripts/make-icons.mjs)
 scripts/               Icon generation, test runner, packaging, and the ship helper
 test/                  Node test suite (node --test)

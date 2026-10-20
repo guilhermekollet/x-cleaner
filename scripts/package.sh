@@ -12,7 +12,7 @@ node scripts/make-icons.mjs
 rm -rf dist
 mkdir -p dist
 
-zip -r -q "$out" manifest.json src icons -x '*.DS_Store'
+zip -r -q "$out" manifest.json _locales src icons fonts -x '*.DS_Store'
 cp "$out" dist/x-cleaner.zip
 echo "Built $out (and dist/x-cleaner.zip)"
 (cd dist && shasum -a 256 "x-cleaner-${version}.zip" | tee "x-cleaner-${version}.zip.sha256")
