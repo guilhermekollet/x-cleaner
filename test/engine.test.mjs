@@ -42,3 +42,54 @@ test("an item without a date is excluded when a date filter is set", () => {
   assert.equal(matches(item({ createdAt: null }), { ...base, since: new Date("2019-01-01") }), false);
   assert.equal(matches(item({ createdAt: null }), base), true);
 });
+
+test("a run adds what it deletes to the history, and only that", async () => {
+  const data = {};
+  globalThis.chrome = {
+    storage: {
+      local: {
+        async get(keys) {
+          const out = {};
+          for (const k of [].concat(keys)) if (k in data) out[k] = structuredClone(data[k]);
+          return out;
+        },
+        async set(obj) {
+          Object.assign(data, structuredClone(obj));
+        },
+        async remove(keys) {
+          for (const k of [].concat(keys)) delete data[k];
+        },
+      },
+    },
+  };
+  const XHistory = require("../src/history.js");
+  const outcomes = { 1: "ok", 2: "gone", 3: "ok" };
+  globalThis.XApi = {
+    userId: () => "77",
+    ensureMeta: async () => ({}),
+    deletePost: async (id) => ({ outcome: outcomes[id] }),
+    removeLike: async (id) => ({ outcome: outcomes[id] }),
+  };
+  const items = [
+    { id: "1", kind: "post", createdAt: "Mon Mar 04 12:00:00 +0000 2019", text: "first, in full", media: [], links: [] },
+    { id: "2", kind: "reply", createdAt: "Mon Mar 04 12:00:00 +0000 2019", text: "already gone" },
+    { id: "3", kind: "like", createdAt: null, text: "liked", url: "https://twitter.com/i/web/status/3" },
+  ];
+  const final = await XEngine.start({
+    ...base,
+    source: "archive",
+    archiveItems: items,
+    speed: { minDelay: 0, maxDelay: 0, batchSize: 1000, batchPause: 0 },
+    limit: Infinity,
+    resume: false,
+    handle: "me",
+  });
+  assert.equal(final.deleted, 2);
+  assert.equal(final.gone, 1);
+  assert.equal(final.historyErrors, 0);
+  const history = await XHistory.load("77", chrome.storage.local);
+  assert.deepEqual(history.map((r) => [r.kind, r.id]).sort(), [["like", "3"], ["post", "1"]]);
+  assert.equal(history.find((r) => r.id === "1").text, "first, in full");
+  assert.equal(history.find((r) => r.id === "1").source, "archive");
+  assert.equal((await XHistory.readMeta("77", chrome.storage.local)).handle, "me");
+});

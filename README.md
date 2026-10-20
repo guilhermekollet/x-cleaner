@@ -49,6 +49,11 @@ you are signed in to. Nothing is uploaded, and you never hand your account to a 
 - **A test run** that stops after 5, so you can confirm it deletes the right things first.
 - **Pause, resume and stop**, and a saved progress list so an interrupted run continues where it
   left off instead of starting over.
+- **A history of what it deleted, and a backup of it.** Every post, reply, repost or like it
+  deletes is recorded with its full text, media and links, what it replied to or reposted, the post
+  date and the deletion date. Open **History** at the top of the popup to browse it (newest first,
+  with search and a filter by type), download it as **JSON** or **CSV**, or clear it. It is kept
+  per account, only in this browser.
 - **English and Portuguese (Brazil)**: switch at the top of the popup; it starts in your browser's
   language and remembers your choice. Light and dark follow your system.
 
@@ -95,8 +100,12 @@ X Cleaner has no server and makes no third-party requests.
 | Requests | Only to `x.com`, with your browser's own session cookie — the same calls the website makes. |
 | Account access | None is granted to anyone. There is no OAuth, no login to a third party, no API key. |
 | Progress | A list of deleted IDs is kept in the browser's local extension storage, so a run can resume. Clear it anytime with **Continue a previous run** left off, or by removing the extension. |
+| History | What was deleted (text, media and link addresses, dates) is kept in the same local storage, per account, so you have a copy. The JSON and CSV backups are made on your computer and saved like any download; nothing is uploaded. Clear it on the History page, or by removing the extension. |
 
-The extension requests only the `storage` permission and access to `x.com` / `twitter.com`.
+The extension requests the `storage` and `unlimitedStorage` permissions and access to `x.com` /
+`twitter.com`. `unlimitedStorage` lifts the browser's 10 MB cap on local extension storage: a history
+of tens of thousands of posts with their full text outgrows it, and a backup that silently stops
+recording would be worse than none. It grants no access to anything else.
 
 ## Limitations
 
@@ -125,8 +134,9 @@ scripts/package.sh         # build dist/x-cleaner-<version>.zip
 Load the folder with **Load unpacked** (see [Install](#install)); after editing a content script,
 reload the extension at `chrome://extensions` and reload the x.com tab.
 
-The tests cover the two pieces that are easy to get wrong and run without a browser: the archive
-reader (including the hand-written ZIP extraction) and the engine's filtering rules.
+The tests cover the pieces that are easy to get wrong and run without a browser: the archive
+reader (including the hand-written ZIP extraction), the engine's filtering rules, and the history
+(records, storage chunks, search, and the JSON and CSV backups).
 
 ## Project layout
 
@@ -138,11 +148,15 @@ src/
   archive.js           Reads the "Download an archive of your data" file (.zip or loose .js),
                        including a dependency-free ZIP reader
   engine.js            The run: ordering, batching, pacing, rate-limit waits, pause/resume,
-                       progress saved for resuming
+                       progress saved for resuming, each deletion added to the history
+  history.js           The history of what was deleted: the records, their storage (per account,
+                       in chunks), search, and the JSON and CSV backups
   content.js           Runs on the x.com tab; holds the engine and answers the popup's messages
   popup.html/.css/.js  The toolbar popup: options, the permanent-deletion confirmation, progress.
                        With an archive, it continues in a tab, where the file dialog works
-  i18n.js              The popup's copy in English and Portuguese, and the language switch
+  history.html/.css   The history page, opened in a tab from the popup's History button:
+  history-page.js      the list, search, type filter, downloads and clearing
+  i18n.js              The pages' copy in English and Portuguese, and the language switch
 _locales/              The extension's name and description in English and Portuguese
 fonts/                 Geist, bundled (SIL Open Font License), so the popup fetches nothing
 icons/                 Generated PNG icons (scripts/make-icons.mjs)

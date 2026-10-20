@@ -17,6 +17,7 @@ let archiveState = null; // "reading" | "error" | { total, by } — for re-rende
 let lastRender = null; // last snapshot shown while running
 let polling = null;
 let profilePath = null; // the signed-in profile (/handle), for "View profile" after a test
+let account = null; // the signed-in user id, for the history count
 
 // The test comes first: a run deletes 5 and stops, then offers the rest. It is skipped once a test
 // has passed (this session or before, remembered in storage) or when "Skip the test" is ticked.
@@ -38,51 +39,17 @@ async function send(type, payload) {
 }
 
 // --- Language ----------------------------------------------------------------
-// The switch animates: the copy cross-fades into the new language where the browser supports view
-// transitions and motion isn't reduced; otherwise it just changes.
-// Clicks compare against the language being switched to, so quick clicks during a transition
-// still land on the last one.
-let targetLang = null;
-for (const b of document.querySelectorAll(".lang button"))
-  b.addEventListener("click", () => {
-    const next = b.dataset.lang;
-    if (next === (targetLang ?? XI18n.lang)) return;
-    targetLang = next;
-    // Every swap applies the latest target, so callbacks that run late or out of order still
-    // leave the last clicked language in place.
-    let applied = false;
-    const swap = () => {
-      if (applied) return;
-      applied = true;
-      XI18n.set(targetLang ?? next);
-    };
-    if (document.startViewTransition && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      const vt = document.startViewTransition(swap);
-      // A transition cut short (another click, the popup closing) is fine; don't report it.
-      for (const p of [vt.ready, vt.finished, vt.updateCallbackDone]) p?.catch(() => {});
-      vt.finished.finally(() => targetLang === XI18n.lang && (targetLang = null)).catch(() => {});
-      // The language must change even when the page can't paint the animation (a background tab).
-      setTimeout(() => {
-        if (applied) return;
-        vt.skipTransition();
-        swap();
-      }, 250);
-    } else {
-      swap();
-      targetLang = null;
-    }
-  });
+XI18n.bindSwitch();
 XI18n.onChange(renderText);
 
 // Re-renders every piece of copy that depends on state, in the current language.
 function renderText() {
-  for (const b of document.querySelectorAll(".lang button")) b.setAttribute("aria-pressed", String(b.dataset.lang === XI18n.lang));
-  document.querySelector(".lang").dataset.lang = XI18n.lang;
   $("accountText").textContent = t(accountKey);
   $("typeLabel").textContent = t("confirm.type", { word: t("confirm.word") });
   $("start").textContent = isTest() ? t("start.test") : t("start.all");
   $("fullBanner").classList.toggle("hidden", !testPassed);
   renderSummary();
+  refreshHistoryCount();
   if (lastRender) render(lastRender.s, lastRender.done);
 }
 
@@ -109,6 +76,8 @@ async function init() {
   if (!pong) return setAccount("out", "status.reload");
   signedIn = pong.signedIn;
   profilePath = pong.profile || null;
+  account = pong.account || null;
+  refreshHistoryCount();
   if (!signedIn) return setAccount("out", "status.signedOut");
   setAccount("in", "status.ready");
   refreshStart();
@@ -122,6 +91,22 @@ function setAccount(state, key) {
   $("account").dataset.state = state;
   $("accountText").textContent = t(key);
   refreshStart();
+}
+
+// --- History -------------------------------------------------------------------
+// Opens the history in a tab, on this tab's account when we know it.
+$("openHistory").addEventListener("click", async () => {
+  const q = account ? `?account=${account}` : "";
+  await chrome.tabs.create({ url: chrome.runtime.getURL(`src/history.html${q}`) });
+  if (!inTab) window.close();
+});
+
+async function refreshHistoryCount() {
+  if (!account) return;
+  const meta = await XHistory.readMeta(account).catch(() => null);
+  const n = meta?.count || 0;
+  $("historyCount").classList.toggle("hidden", !n);
+  $("historyCount").textContent = new Intl.NumberFormat(XI18n.locale).format(n);
 }
 
 // --- Archive reading -----------------------------------------------------------
@@ -190,6 +175,17 @@ function refreshStart() {
 }
 
 // --- Running -------------------------------------------------------------------
+// Archive items go to the tab in parts: they carry the full text and media for the history, and
+// Chrome caps one message at 64 MB, which a very large archive would exceed in one go.
+const STAGE_SIZE = 5000;
+async function stageArchive(items) {
+  for (let i = 0; i < items.length; i += STAGE_SIZE) {
+    const res = await send("stage", { reset: i === 0, items: items.slice(i, i + STAGE_SIZE) });
+    if (!res || !res.ok) return false;
+  }
+  return true;
+}
+
 const parseKeep = () => ($("f-keep").value || "").split(/[\s,]+/).map((s) => s.trim()).filter(Boolean);
 
 $("start").addEventListener("click", async () => {
@@ -197,7 +193,7 @@ $("start").addEventListener("click", async () => {
   if (types.like && sourceValue() === "timeline") types.like = false; // likes need the archive
   const config = {
     source: sourceValue(),
-    archiveItems: sourceValue() === "archive" ? archiveItems : [],
+    staged: sourceValue() === "archive",
     types,
     keyword: $("f-keyword").value.trim() || null,
     since: $("f-since").value ? new Date($("f-since").value).toISOString() : null,
@@ -209,6 +205,7 @@ $("start").addEventListener("click", async () => {
     resume: $("resumePrev").checked || testPassed,
   };
   lastRunWasTest = isTest();
+  if (config.staged && !(await stageArchive(archiveItems))) return setAccount("out", "run.couldNotStart");
   const res = await send("start", { config });
   if (!res || !res.ok) return setAccount("out", res && res.error === "already-running" ? "run.alreadyRunning" : "run.couldNotStart");
   enterRunning();
@@ -266,6 +263,7 @@ function exitRunning(final) {
   $("viewProfile").classList.toggle("hidden", !testOk);
   $("continueFull").classList.toggle("hidden", !testOk);
   if (testOk) chrome.storage.local.set({ [TESTED_KEY]: true }).catch(() => {});
+  refreshHistoryCount();
 }
 
 async function poll() {
@@ -297,7 +295,10 @@ function render(s, done) {
   else if (s.batchUntil) msg = t("run.batch", { s: secsUntil(s.batchUntil) });
   else if (s.paused) msg = t("run.paused");
   else msg = hasTotal ? `${t("run.working")} ${t("run.progress", { done: fmt.format(acted), total: fmt.format(s.total) })}` : t("run.working");
+  // The history is the only copy of what was deleted; say so if any of it couldn't be saved.
+  if (s.historyErrors) msg += " " + t("run.historyErrors", { n: fmt.format(s.historyErrors) });
   $("p-status").textContent = msg;
+  refreshHistoryCount();
 
   const bar = $("p-bar");
   bar.classList.toggle("done", !!done && !s.fatal && !s.stopped);

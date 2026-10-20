@@ -1,7 +1,7 @@
 // The popup's copy in English and Brazilian Portuguese, and the switch between them. The choice
 // is saved in the extension's storage; until there is one, it follows the browser's language.
-// Static text is marked in popup.html with data-i18n (text) and data-i18n-placeholder; the
-// popup asks for everything else through t().
+// Static text is marked in the pages with data-i18n (text), data-i18n-placeholder and
+// data-i18n-title (tooltip and accessible name); the scripts ask for everything else through t().
 globalThis.XI18n = (() => {
   const STORAGE_KEY = "xcleaner.lang";
 
@@ -73,8 +73,42 @@ globalThis.XI18n = (() => {
       "run.fatalSession": "X rejected the session. Reload x.com, check you're signed in and try again.",
       "run.alreadyRunning": "A run is already in progress.",
       "run.couldNotStart": "Couldn't start — reload the x.com tab and try again.",
+      "run.historyErrors": "{n} deleted items couldn't be added to the history.",
       "foot.private": "Runs only in your browser",
       "foot.source": "Open source",
+      "history.open": "History",
+      "history.openLabel": "History of what was deleted",
+      "history.title": "Deletion history",
+      "history.tagline": "What X Cleaner deleted, kept as a backup",
+      "history.private": "Kept only in this browser. Nothing is uploaded; the backups are made on your computer.",
+      "history.total": "{n} deleted",
+      "history.totalOne": "1 deleted",
+      "history.account": "Account",
+      "history.search": "Search the text, a link or an ID",
+      "history.all": "All",
+      "history.json": "Download JSON",
+      "history.csv": "Download CSV",
+      "history.clear": "Clear history",
+      "history.deleted": "Deleted {date}",
+      "history.youReposted": "You reposted",
+      "history.youLiked": "You liked",
+      "history.replyingTo": "Replying to {user}",
+      "history.unknownAuthor": "Unknown author",
+      "history.openOnX": "Open on X",
+      "history.media.photo": "Photo",
+      "history.media.video": "Video",
+      "history.media.gif": "GIF",
+      "history.more": "Show {n} more",
+      "history.showing": "{shown} of {total}",
+      "history.none": "No matches.",
+      "history.emptyTitle": "Nothing deleted yet",
+      "history.empty": "What X Cleaner deletes shows up here, with its full text, so you keep a copy.",
+      "history.loading": "Loading…",
+      "history.loadError": "Couldn't read the history from the browser's storage.",
+      "history.confirmTitle": "Clear the history?",
+      "history.confirmText": "This removes the {n} records of this account from this browser. The posts are already gone from X, so this copy is the only one left: download a backup first.",
+      "history.cancel": "Cancel",
+      "history.confirmClear": "Clear",
     },
     pt: {
       tagline: "Apague seus posts no X",
@@ -143,8 +177,42 @@ globalThis.XI18n = (() => {
       "run.fatalSession": "O X recusou a sessão. Recarregue o x.com, confira se está conectado e tente de novo.",
       "run.alreadyRunning": "Já tem uma rodada em andamento.",
       "run.couldNotStart": "Não deu para começar — recarregue a aba do x.com e tente de novo.",
+      "run.historyErrors": "{n} itens apagados não entraram no histórico.",
       "foot.private": "Roda só no seu navegador",
       "foot.source": "Código aberto",
+      "history.open": "Histórico",
+      "history.openLabel": "Histórico do que foi apagado",
+      "history.title": "Histórico de exclusões",
+      "history.tagline": "O que o X Cleaner apagou, guardado como backup",
+      "history.private": "Fica só neste navegador. Nada é enviado; os backups são gerados no seu computador.",
+      "history.total": "{n} apagados",
+      "history.totalOne": "1 apagado",
+      "history.account": "Conta",
+      "history.search": "Busque no texto, num link ou num ID",
+      "history.all": "Todos",
+      "history.json": "Baixar JSON",
+      "history.csv": "Baixar CSV",
+      "history.clear": "Limpar histórico",
+      "history.deleted": "Apagado em {date}",
+      "history.youReposted": "Você repostou",
+      "history.youLiked": "Você curtiu",
+      "history.replyingTo": "Em resposta a {user}",
+      "history.unknownAuthor": "Autor desconhecido",
+      "history.openOnX": "Abrir no X",
+      "history.media.photo": "Foto",
+      "history.media.video": "Vídeo",
+      "history.media.gif": "GIF",
+      "history.more": "Mostrar mais {n}",
+      "history.showing": "{shown} de {total}",
+      "history.none": "Nada encontrado.",
+      "history.emptyTitle": "Nada apagado ainda",
+      "history.empty": "O que o X Cleaner apagar aparece aqui, com o texto completo, para você guardar uma cópia.",
+      "history.loading": "Carregando…",
+      "history.loadError": "Não deu para ler o histórico do armazenamento do navegador.",
+      "history.confirmTitle": "Limpar o histórico?",
+      "history.confirmText": "Isso remove os {n} registros desta conta deste navegador. Os posts já não existem no X, então esta é a única cópia: baixe um backup antes.",
+      "history.cancel": "Cancelar",
+      "history.confirmClear": "Limpar",
     },
   };
 
@@ -161,6 +229,10 @@ globalThis.XI18n = (() => {
     document.documentElement.lang = lang === "pt" ? "pt-BR" : "en";
     for (const el of root.querySelectorAll("[data-i18n]")) el.textContent = t(el.dataset.i18n);
     for (const el of root.querySelectorAll("[data-i18n-placeholder]")) el.placeholder = t(el.dataset.i18nPlaceholder);
+    for (const el of root.querySelectorAll("[data-i18n-title]")) {
+      el.title = t(el.dataset.i18nTitle);
+      el.setAttribute("aria-label", el.title);
+    }
   }
 
   async function load() {
@@ -172,6 +244,51 @@ globalThis.XI18n = (() => {
     }
     apply();
     listeners.forEach((fn) => fn(lang));
+  }
+
+  // Wires the EN | PT switch (.lang buttons). The switch animates: the copy cross-fades into the
+  // new language where the browser supports view transitions and motion isn't reduced; otherwise
+  // it just changes. Clicks compare against the language being switched to, so quick clicks
+  // during a transition still land on the last one.
+  function bindSwitch(root = document) {
+    const group = root.querySelector(".lang");
+    if (!group) return;
+    const mark = () => {
+      group.dataset.lang = lang;
+      for (const b of group.querySelectorAll("button")) b.setAttribute("aria-pressed", String(b.dataset.lang === lang));
+    };
+    listeners.push(mark);
+    mark();
+    let targetLang = null;
+    for (const b of group.querySelectorAll("button"))
+      b.addEventListener("click", () => {
+        const next = b.dataset.lang;
+        if (next === (targetLang ?? lang)) return;
+        targetLang = next;
+        // Every swap applies the latest target, so callbacks that run late or out of order still
+        // leave the last clicked language in place.
+        let applied = false;
+        const swap = () => {
+          if (applied) return;
+          applied = true;
+          set(targetLang ?? next);
+        };
+        if (document.startViewTransition && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          const vt = document.startViewTransition(swap);
+          // A transition cut short (another click, the popup closing) is fine; don't report it.
+          for (const p of [vt.ready, vt.finished, vt.updateCallbackDone]) p?.catch(() => {});
+          vt.finished.finally(() => targetLang === lang && (targetLang = null)).catch(() => {});
+          // The language must change even when the page can't paint the animation (a background tab).
+          setTimeout(() => {
+            if (applied) return;
+            vt.skipTransition();
+            swap();
+          }, 250);
+        } else {
+          swap();
+          targetLang = null;
+        }
+      });
   }
 
   async function set(next) {
@@ -189,6 +306,11 @@ globalThis.XI18n = (() => {
     apply,
     load,
     set,
+    bindSwitch,
+    // The locale for numbers and dates in the current language.
+    get locale() {
+      return lang === "pt" ? "pt-BR" : "en-US";
+    },
     get lang() {
       return lang;
     },

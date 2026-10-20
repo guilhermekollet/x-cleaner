@@ -1,0 +1,145 @@
+/* The history page, on top of popup.css (tokens, Geist, header, pills, chips): the same
+   monochrome look, in a wider column since it opens in a tab. */
+
+body.page { width: auto; max-width: 720px; margin: 0 auto; padding: 32px 20px 28px; }
+
+.page-title { margin: 28px 0 0; font-size: 26px; line-height: 1.15; font-weight: 800; letter-spacing: -0.025em; }
+.private-note { display: flex; align-items: flex-start; gap: 7px; margin: 6px 0 0; font-size: 13px; color: var(--muted); }
+.private-note svg { width: 15px; height: 15px; margin-top: 2px; stroke-width: 2; }
+
+/* Accounts: pills, the chosen one solid. */
+.accounts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 18px; }
+.accounts button {
+  height: 32px; padding: 0 14px; border: 1px solid var(--line); border-radius: 999px; background: none;
+  color: var(--muted); font: 600 13px/1 "Geist", sans-serif; cursor: pointer; transition: background 0.15s, color 0.15s;
+}
+.accounts button:hover { background: var(--mist); }
+.accounts button[aria-selected="true"] { background: var(--fog); border-color: var(--fog); color: var(--fg); }
+.accounts button:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+
+/* Count and backups: one thin-bordered card. */
+.overview {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px;
+  margin-top: 18px; padding: 16px 18px; border: 1px solid var(--line); border-radius: 18px; background: var(--surface);
+}
+.overview-count { display: flex; flex-direction: column; }
+.overview-count b { font-size: 26px; line-height: 1.1; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.account-name { font-size: 13px; color: var(--muted); }
+.overview-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.overview-actions .btn { height: 36px; padding: 0 15px; font-size: 13.5px; }
+.overview-actions svg { width: 16px; height: 16px; stroke-width: 2; }
+.btn-ghost { background: none; color: var(--muted); }
+.btn-ghost:hover:not(:disabled) { color: var(--danger); scale: 1; }
+
+/* Search and type filter. */
+.browse { margin-top: 18px; }
+.search { position: relative; display: block; }
+.search svg { position: absolute; left: 14px; top: 50%; translate: 0 -50%; width: 17px; height: 17px; color: var(--muted); pointer-events: none; }
+.search input {
+  width: 100%; height: 42px; padding: 0 16px 0 40px; border: 1px solid var(--line); border-radius: 999px;
+  background: var(--bg); color: var(--fg); font: 14px "Geist", sans-serif;
+}
+.search input:focus { outline: none; border-color: var(--fg); }
+.search input::-webkit-search-cancel-button { cursor: pointer; }
+.kinds { margin-top: 10px; }
+.kinds .chip span small { font-weight: 500; font-variant-numeric: tabular-nums; opacity: 0.75; }
+/* A single choice: no dot, the chosen one filled. */
+.kinds .chip span::before { display: none; }
+.showing { margin: 14px 0 0; font-size: 12.5px; color: var(--muted); }
+
+/* Records, drawn like posts on x.com: one column with a thin border, posts separated by lines,
+   avatar on the left, 15px text, mentions and links in X's blue. */
+:root { --link: #1d9bf0; }
+.records { list-style: none; margin: 8px 0 0; padding: 0; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+.post { padding: 12px 16px; border-top: 1px solid var(--line); transition: background 0.15s; }
+.post:first-child { border-top: 0; }
+.post:hover { background: var(--mist); }
+.post a { color: inherit; text-decoration: none; }
+
+.post-social { display: flex; align-items: center; gap: 12px; margin: 0 0 4px; padding-left: 24px; font-size: 13px; font-weight: 700; color: var(--muted); }
+.post-social svg { width: 16px; height: 16px; stroke-width: 2; }
+.post-row { display: grid; grid-template-columns: 40px 1fr; gap: 12px; }
+.avatar {
+  display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%;
+  background: var(--fog); color: var(--muted); font-weight: 700; font-size: 16px;
+}
+.avatar svg { width: 20px; height: 20px; }
+.post-body { min-width: 0; }
+
+.post-head { display: flex; align-items: center; gap: 4px; min-width: 0; font-size: 15px; line-height: 20px; color: var(--muted); }
+/* As on x.com, the @handle gives way first when the line is short, then the name. */
+.post-name { flex-shrink: 0; max-width: 60%; color: var(--fg); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.post-handle { flex-shrink: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.post-head time { white-space: nowrap; }
+.post-open { margin-left: auto; display: grid; place-items: center; width: 30px; height: 30px; margin-block: -5px; border-radius: 50%; color: var(--muted); }
+.post-open:hover { background: color-mix(in srgb, var(--link) 12%, transparent); color: var(--link); }
+.post-open svg { width: 17px; height: 17px; }
+
+.post-replying { margin-top: 2px; font-size: 15px; line-height: 20px; color: var(--muted); }
+.post-replying a, .post-text a { color: var(--link); }
+.post-replying a:hover, .post-text a:hover { text-decoration: underline; }
+.post-text { margin: 2px 0 0; font-size: 15px; line-height: 20px; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* The media grid x.com uses, with placeholders instead of the images. */
+.media-grid {
+  display: grid; gap: 2px; margin-top: 12px; aspect-ratio: 16 / 9;
+  border: 1px solid var(--line); border-radius: 16px; overflow: hidden;
+  grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr;
+}
+.media-grid[data-count="1"] > * { grid-column: 1 / -1; grid-row: 1 / -1; }
+.media-grid[data-count="2"] > * { grid-row: 1 / -1; }
+.media-grid[data-count="3"] > :first-child { grid-row: 1 / -1; }
+.media-grid > * {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  background: var(--fog); color: var(--muted); font-size: 13px; font-weight: 600;
+}
+.media-grid > a:hover { color: var(--fg); }
+.media-grid svg { width: 26px; height: 26px; stroke-width: 1.5; }
+
+/* A link card, like X's preview card without the image. */
+.post-body > a:not(.post-open) {
+  display: flex; flex-direction: column; gap: 1px; margin-top: 12px; padding: 10px 14px;
+  border: 1px solid var(--line); border-radius: 16px; font-size: 14px;
+}
+.post-body > a:hover { background: var(--bg); }
+.card-host { color: var(--muted); font-size: 13px; }
+.card-url { color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.post-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; font-size: 13px; color: var(--muted); }
+.post-foot > span:first-child { display: inline-flex; align-items: center; gap: 6px; }
+.post-foot svg { width: 16px; height: 16px; }
+.post .id { font: 11.5px "Geist Mono", ui-monospace, monospace; }
+
+#more { margin-top: 12px; }
+
+/* Nothing to show yet. */
+.empty {
+  display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 18px; padding: 44px 24px;
+  border: 1px dashed var(--line); border-radius: 18px; text-align: center;
+}
+.empty svg { width: 28px; height: 28px; color: var(--muted); stroke-width: 1.6; }
+.empty b { font-size: 16px; margin-top: 4px; }
+.empty p { margin: 0; max-width: 380px; font-size: 13.5px; color: var(--muted); }
+.empty p:empty { display: none; }
+.empty.error b { color: var(--danger); }
+
+/* Clearing asks first. */
+.dialog {
+  width: min(440px, calc(100vw - 32px)); padding: 20px; border: 1px solid var(--line); border-radius: 20px;
+  background: var(--surface); color: var(--fg);
+}
+.dialog::backdrop { background: rgba(91, 112, 131, 0.4); }
+.dialog h2 { margin: 0; font-size: 18px; font-weight: 800; letter-spacing: -0.01em; }
+.dialog p { margin: 8px 0 0; font-size: 14px; color: var(--muted); }
+.dialog-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 18px; }
+.dialog-actions .grow { flex: 1; }
+.dialog-actions .btn { height: 36px; padding: 0 15px; font-size: 13.5px; }
+.dialog-actions svg { width: 16px; height: 16px; stroke-width: 2; }
+
+.page .foot { margin-top: 28px; }
+
+@media (max-width: 520px) {
+  body.page { padding: 20px 16px; }
+  .overview-actions { width: 100%; }
+  .post .id { display: none; }
+}

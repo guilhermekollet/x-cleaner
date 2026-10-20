@@ -16,19 +16,25 @@ globalThis.XArchive = (() => {
     return arr.map((row) => row.tweet || row.like || row);
   }
 
-  // Normalizes one archive row into the shape the engine uses. Likes carry only an id.
+  // Normalizes one archive row into the shape the engine uses. The full text, media and links
+  // ride along so the history keeps them once the item is deleted. Likes carry the liked post's
+  // id, and usually its text and link, but no date.
   function normalize(row) {
-    if (row.tweetId && !row.id_str) return { id: row.tweetId, kind: "like", createdAt: null };
+    if (row.tweetId && !row.id_str) {
+      return { id: row.tweetId, kind: "like", createdAt: null, text: row.fullText || "", url: row.expandedUrl || null };
+    }
     const id = row.id_str || row.id;
     if (!id) return null;
-    const full = row.full_text || row.text || "";
-    const isRepost = full.startsWith("RT @");
-    const isReply = !!row.in_reply_to_status_id_str;
+    const { text, media, links, replyTo } = XHistory.details(row);
+    const isRepost = text.startsWith("RT @");
     return {
       id,
       createdAt: row.created_at || null,
-      kind: isRepost ? "repost" : isReply ? "reply" : "post",
-      text: full.slice(0, 80),
+      kind: isRepost ? "repost" : replyTo ? "reply" : "post",
+      text,
+      media,
+      links,
+      replyTo,
     };
   }
 
