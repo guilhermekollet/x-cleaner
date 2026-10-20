@@ -275,7 +275,7 @@ label.btn { position: relative; }
 .banner svg { width: 16px; height: 16px; stroke-width: 2.2; }
 .banner + .confirm { margin-top: 8px; }
 
-/* ---------- Footer ---------- */
+/* ---------- Footer (the history page; the popup has none) ---------- */
 .foot { margin-top: 16px; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 11.5px; color: var(--muted); }
 .foot .private { display: inline-flex; align-items: center; gap: 4px; }
 .foot .private svg { width: 12px; height: 12px; stroke-width: 2; }
