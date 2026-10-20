@@ -1,6 +1,6 @@
-/* The site's design system, for the extension: x.com's black and white with X blue as the one
-   accent, Geist (bundled, so nothing is fetched from a third party), pill buttons and thin-bordered
-   cards. Light and dark follow the system. */
+/* The site's design system, for the extension, kept monochrome like x.com itself: black, white
+   and greys, with red only for errors. Geist (bundled, so nothing is fetched from a third party),
+   pill buttons and thin-bordered cards. Light and dark follow the system. */
 
 @font-face {
   font-family: "Geist";
@@ -26,13 +26,7 @@
   --line: #cfd9de;
   --pill: #0f1419;
   --pill-fg: #ffffff;
-  --accent: #1d9bf0;
-  --accent-soft: #e8f5fe;
   --danger: #f4212e;
-  --danger-soft: #fdecee;
-  --ok: #00a67e;
-  --warn: #b45309;
-  --warn-soft: #fef3c7;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -47,13 +41,7 @@
     --line: #2f3336;
     --pill: #eff3f4;
     --pill-fg: #0f1419;
-    --accent: #1d9bf0;
-    --accent-soft: #061a2b;
     --danger: #f4212e;
-    --danger-soft: #2a0a0d;
-    --ok: #00ba7c;
-    --warn: #ffad1f;
-    --warn-soft: #2b1f05;
   }
 }
 
@@ -104,8 +92,8 @@ h1 { margin: 0; font-size: 17px; line-height: 1.1; font-weight: 800; letter-spac
 }
 .status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex-shrink: 0; }
 .status[data-state="in"] { color: var(--fg); }
-.status[data-state="in"] .dot { background: var(--ok); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 20%, transparent); }
-.status[data-state="out"] { border-color: color-mix(in srgb, var(--danger) 40%, var(--line)); background: var(--danger-soft); color: var(--fg); }
+.status[data-state="in"] .dot { background: var(--fg); }
+.status[data-state="out"] { border-color: color-mix(in srgb, var(--danger) 45%, var(--line)); color: var(--fg); }
 .status[data-state="out"] .dot { background: var(--danger); }
 
 /* ---------- Blocks ---------- */
@@ -125,9 +113,9 @@ h2 { margin: 0 0 8px; font-size: 13px; font-weight: 700; letter-spacing: -0.005e
 .choice svg { width: 17px; height: 17px; color: var(--muted); }
 .choice b { font-size: 13.5px; }
 .choice small { font-size: 11.5px; line-height: 1.35; color: var(--muted); }
-.choice:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
-.choice:has(input:checked) svg { color: var(--accent); }
-.choice:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.choice:has(input:checked) { border-color: var(--fg); box-shadow: inset 0 0 0 0.5px var(--fg); }
+.choice:has(input:checked) svg { color: var(--fg); }
+.choice:has(input:focus-visible) { outline: 2px solid var(--fg); outline-offset: 2px; }
 
 .archive { margin-top: 10px; }
 .summary { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
@@ -149,9 +137,9 @@ h2 { margin: 0 0 8px; font-size: 13px; font-weight: 700; letter-spacing: -0.005e
   content: ""; width: 7px; height: 7px; border-radius: 50%;
   border: 1.5px solid currentColor; transition: all 0.15s;
 }
-.chip input:checked + span { border-color: var(--accent); background: var(--accent-soft); color: var(--fg); }
-.chip input:checked + span::before { background: var(--accent); border-color: var(--accent); }
-.chip input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+.chip input:checked + span { border-color: var(--fg); color: var(--fg); }
+.chip input:checked + span::before { background: var(--fg); border-color: var(--fg); }
+.chip input:focus-visible + span { outline: 2px solid var(--fg); outline-offset: 2px; }
 
 /* Pace: a segmented control. */
 .segmented { display: grid; grid-template-columns: repeat(3, 1fr); padding: 3px; border-radius: 999px; background: var(--fog); }
@@ -162,7 +150,7 @@ h2 { margin: 0 0 8px; font-size: 13px; font-weight: 700; letter-spacing: -0.005e
   font-weight: 600; font-size: 13px; color: var(--muted); transition: all 0.15s;
 }
 .segmented input:checked + span { background: var(--bg); color: var(--fg); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15); }
-.segmented input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 1px; }
+.segmented input:focus-visible + span { outline: 2px solid var(--fg); outline-offset: 1px; }
 
 /* Pace and the test switch, side by side. */
 .pair { display: grid; grid-template-columns: 1fr auto; gap: 14px; align-items: start; }
@@ -177,9 +165,10 @@ h2 { margin: 0 0 8px; font-size: 13px; font-weight: 700; letter-spacing: -0.005e
   content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px;
   border-radius: 50%; background: #fff; transition: translate 0.2s; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
-.switch:checked { background: var(--accent); }
+.switch:checked { background: var(--fg); }
+.switch:checked::after { background: var(--bg); }
 .switch:checked::after { translate: 16px 0; }
-.switch:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.switch:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
 
 /* Filters. */
 /* More options: a quiet disclosure line; its fields open below it. */
@@ -198,13 +187,13 @@ input[type="text"], input[type="date"] {
   width: 100%; padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px;
   background: var(--bg); color: var(--fg); font: 13px "Geist", sans-serif;
 }
-input[type="text"]:focus, input[type="date"]:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
+input[type="text"]:focus, input[type="date"]:focus { outline: none; border-color: var(--fg); }
 #confirmWord { font-family: "Geist Mono", ui-monospace, monospace; letter-spacing: 0.08em; text-transform: uppercase; }
 
 /* Permanent-deletion confirmation, in X's amber. */
 .confirm {
   margin-top: 12px; padding: 10px 14px; border-radius: 14px;
-  background: var(--warn-soft); border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent);
+  border: 1px solid var(--line);
 }
 .confirm .field { color: var(--fg); }
 .check { display: flex; align-items: flex-start; gap: 9px; cursor: pointer; font-size: 13px; }
@@ -212,11 +201,11 @@ input[type="text"]:focus, input[type="date"]:focus { outline: none; border-color
   appearance: none; flex-shrink: 0; width: 17px; height: 17px; margin: 1px 0 0;
   border: 1.5px solid var(--muted); border-radius: 5px; cursor: pointer; display: grid; place-items: center;
 }
-.check input:checked { background: var(--accent); border-color: var(--accent); }
+.check input:checked { background: var(--fg); border-color: var(--fg); }
 .check input:checked::after {
-  content: ""; width: 5px; height: 9px; border: solid #fff; border-width: 0 2px 2px 0; rotate: 45deg; translate: 0 -1px;
+  content: ""; width: 5px; height: 9px; border: solid var(--bg); border-width: 0 2px 2px 0; rotate: 45deg; translate: 0 -1px;
 }
-.check input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.check input:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
 .check.quiet { margin-top: 12px; color: var(--muted); font-size: 12.5px; }
 .check.quiet small { opacity: 0.8; }
 
@@ -234,7 +223,7 @@ input[type="text"]:focus, input[type="date"]:focus { outline: none; border-color
 .btn-lg { height: 44px; font-size: 15px; margin-top: 12px; }
 .btn-outline { background: transparent; border-color: var(--line); }
 .btn-solid { background: var(--pill); color: var(--pill-fg); }
-.btn-danger { background: var(--danger); color: #fff; }
+.btn-danger { background: var(--pill); color: var(--pill-fg); }
 .btn input[type="file"] { display: none; }
 label.btn { position: relative; }
 
@@ -244,15 +233,14 @@ label.btn { position: relative; }
 .counters div { display: flex; flex-direction: column; }
 .counters b { font-size: 26px; line-height: 1.1; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
 .counters span { font-size: 12px; color: var(--muted); }
-.counters .ok { color: var(--ok); }
-.counters .bad { color: var(--danger); }
+.counters .bad.has { color: var(--danger); }
 
 .bar { position: relative; height: 6px; margin-top: 16px; border-radius: 999px; background: var(--fog); overflow: hidden; }
-.bar i { position: absolute; inset: 0 auto 0 0; width: 0; border-radius: 999px; background: var(--accent); transition: width 0.5s; }
+.bar i { position: absolute; inset: 0 auto 0 0; width: 0; border-radius: 999px; background: var(--fg); transition: width 0.5s; }
 /* Without a total (timeline mode) the bar just shows that it is working. */
 .bar.indeterminate i { width: 35%; animation: slide 1.4s ease-in-out infinite; }
 @keyframes slide { from { left: -35%; } to { left: 100%; } }
-.bar.done i { width: 100% !important; animation: none; left: 0; background: var(--ok); }
+.bar.done i { width: 100% !important; animation: none; left: 0; }
 
 .run-status { margin: 10px 0 0; font-size: 13px; color: var(--muted); min-height: 19px; }
 .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
@@ -260,7 +248,7 @@ label.btn { position: relative; }
 
 /* ---------- Footer ---------- */
 .foot { margin-top: 12px; text-align: center; font-size: 11.5px; color: var(--muted); }
-.foot a { color: var(--accent); text-decoration: none; font-weight: 600; }
+.foot a { color: var(--fg); text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 2px; font-weight: 600; }
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
