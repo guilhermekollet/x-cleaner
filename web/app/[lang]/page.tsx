@@ -74,11 +74,7 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
         <section className="relative overflow-hidden">
           <div className="mx-auto grid max-w-6xl items-center gap-12 px-5 py-20 md:grid-cols-2 md:py-28">
             <div>
-              <p className="rise inline-flex items-center gap-2 rounded-full border border-line px-3 py-1 text-xs font-medium text-fg/60" style={after(0)}>
-                <Mark className="size-4 text-accent" />
-                {d.hero.eyebrow}
-              </p>
-              <h1 className="rise mt-5 text-[clamp(40px,6.5vw,68px)] leading-[1.02] font-extrabold tracking-[-0.04em]" style={after(80)}>
+              <h1 className="rise text-[clamp(40px,6.5vw,68px)] leading-[1.02] font-extrabold tracking-[-0.04em]" style={after(80)}>
                 {d.hero.title}
               </h1>
               <p className="rise mt-5 max-w-[30rem] text-[18px] leading-relaxed text-fg/70" style={after(160)}>
@@ -88,6 +84,24 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
                 <a href={DOWNLOAD_URL} className={`${pill} bg-accent text-white`}>
                   <DownloadIcon />
                   {d.download}
+                </a>
+                {/* GitHub's star button: the label, then the count once there is one. */}
+                <a
+                  href={REPO_URL}
+                  target="_blank"
+                  rel="noopener"
+                  className="press inline-flex h-11 items-stretch overflow-hidden rounded-full border border-line text-sm font-semibold whitespace-nowrap"
+                >
+                  <span className="flex items-center gap-2 px-4">
+                    <GithubLogo className="size-4" />
+                    <StarIcon />
+                    {d.hero.star}
+                  </span>
+                  {stats && stats.stars > 0 ? (
+                    <span className="flex items-center border-l border-line bg-fg/[0.04] px-3.5 tabular-nums">
+                      {new Intl.NumberFormat(lang === "pt" ? "pt-BR" : "en-US").format(stats.stars)}
+                    </span>
+                  ) : null}
                 </a>
                 <a href="#what" className={`${pill} border border-line text-fg`}>
                   {d.hero.see}
