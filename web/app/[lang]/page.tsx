@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getDictionary, hasLocale, locales } from "@/i18n/dictionaries";
+import { getDictionary, hasLocale, locales, type Locale } from "@/i18n/dictionaries";
 import { Mark, GithubLogo } from "@/components/mark";
 import { HeaderMenu } from "@/components/header-menu";
 import { RevealObserver } from "@/components/motion-bits";
@@ -57,15 +57,18 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
 
       {/* Header: just the mark and the download. Language and theme live in the footer. */}
       <header className="sticky top-0 z-50 bg-bg/80 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
-          <a href="#top" className="flex items-center gap-2 font-semibold">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-5">
+          <a href="#top" className="flex shrink-0 items-center gap-2 font-semibold whitespace-nowrap">
             <Mark className="size-7 text-fg" />
             <span>X Cleaner</span>
           </a>
-          <a href={DOWNLOAD_URL} className={`${pill} h-10 bg-pill text-pill-fg`}>
-            <DownloadIcon />
-            {d.download}
-          </a>
+          <div className="flex items-center gap-2">
+            <StarButton label={d.hero.star} stars={stats?.stars ?? 0} lang={lang} compact />
+            <a href={DOWNLOAD_URL} className={`${pill} h-10 bg-pill px-3.5 text-pill-fg sm:px-5`}>
+              <DownloadIcon />
+              {d.download}
+            </a>
+          </div>
         </div>
       </header>
 
@@ -85,24 +88,7 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
                   <DownloadIcon />
                   {d.download}
                 </a>
-                {/* GitHub's star button: the label, then the count once there is one. */}
-                <a
-                  href={REPO_URL}
-                  target="_blank"
-                  rel="noopener"
-                  className="press inline-flex h-11 items-stretch overflow-hidden rounded-full border border-line text-sm font-semibold whitespace-nowrap"
-                >
-                  <span className="flex items-center gap-2 px-4">
-                    <GithubLogo className="size-4" />
-                    <StarIcon />
-                    {d.hero.star}
-                  </span>
-                  {stats && stats.stars > 0 ? (
-                    <span className="flex items-center border-l border-line bg-fg/[0.04] px-3.5 tabular-nums">
-                      {new Intl.NumberFormat(lang === "pt" ? "pt-BR" : "en-US").format(stats.stars)}
-                    </span>
-                  ) : null}
-                </a>
+                <StarButton label={d.hero.star} stars={stats?.stars ?? 0} lang={lang} />
                 <a href="#what" className={`${pill} border border-line text-fg`}>
                   {d.hero.see}
                 </a>
@@ -352,6 +338,33 @@ function WarnIcon() {
     </svg>
   );
 }
+// GitHub's star button: the label, then the count once the repository has stars. `compact` is the
+// header's smaller version, which keeps only the icons on narrow screens.
+function StarButton({ label, stars, lang, compact }: { label: string; stars: number; lang: Locale; compact?: boolean }) {
+  return (
+    <a
+      href={REPO_URL}
+      target="_blank"
+      rel="noopener"
+      aria-label={`GitHub — ${label}`}
+      className={`press inline-flex ${compact ? "h-10" : "h-11"} items-stretch overflow-hidden rounded-full border border-line text-sm font-semibold whitespace-nowrap`}
+    >
+      <span className={`flex items-center gap-2 ${compact ? "px-3 sm:px-4" : "px-4"}`}>
+        <GithubLogo className="size-4" />
+        <span className={compact ? "hidden sm:inline" : undefined}>
+          <StarIcon />
+        </span>
+        <span className={compact ? "hidden sm:inline" : undefined}>{label}</span>
+      </span>
+      {stars > 0 ? (
+        <span className="flex items-center border-l border-line bg-fg/[0.04] px-3.5 tabular-nums">
+          {new Intl.NumberFormat(lang === "pt" ? "pt-BR" : "en-US").format(stars)}
+        </span>
+      ) : null}
+    </a>
+  );
+}
+
 function DownloadIcon() {
   return (
     <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
