@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    name: Test and validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Run tests
+        run: node --test
+      - name: Validate manifest.json
+        run: node -e "const m=require('./manifest.json'); if(m.manifest_version!==3) throw new Error('expected manifest v3'); JSON.stringify(m); console.log('manifest ok, version '+m.version)"
+      - name: Check the version matches package.json
+        run: node -e "const a=require('./manifest.json').version,b=require('./package.json').version; if(a!==b) throw new Error('manifest '+a+' != package '+b); console.log('version '+a)"
+      - name: Regenerate icons and confirm they are committed
+        run: |
+          node scripts/make-icons.mjs
+          git diff --exit-code -- icons || (echo "icons are out of date: run node scripts/make-icons.mjs and commit" && exit 1)

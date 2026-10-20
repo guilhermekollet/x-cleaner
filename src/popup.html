@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>X Cleaner</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header class="head">
+      <img src="../icons/icon-48.png" width="24" height="24" alt="" />
+      <h1>X Cleaner</h1>
+    </header>
+
+    <p id="account" class="account" data-state="unknown">Checking the current tab…</p>
+
+    <section class="card" id="controls">
+      <fieldset class="source">
+        <legend>What to read</legend>
+        <label class="radio">
+          <input type="radio" name="source" value="timeline" checked />
+          <span><b>Recent, no file</b> — reads your profile. Reaches the most recent
+          posts the site still lists.</span>
+        </label>
+        <label class="radio">
+          <input type="radio" name="source" value="archive" />
+          <span><b>Archive file</b> — reaches everything, including old posts. Use the
+          <code>.zip</code> from <i>Settings → Your account → Download an archive of your data</i>.</span>
+        </label>
+        <div id="archiveRow" class="archive hidden">
+          <input type="file" id="archiveFile" accept=".zip,.js" multiple />
+          <p id="archiveSummary" class="muted"></p>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>What to delete</legend>
+        <label class="check"><input type="checkbox" id="t-post" checked /> Posts</label>
+        <label class="check"><input type="checkbox" id="t-reply" checked /> Replies</label>
+        <label class="check"><input type="checkbox" id="t-repost" checked /> Reposts</label>
+        <label class="check"><input type="checkbox" id="t-like" /> Likes <span class="muted">(archive only)</span></label>
+      </fieldset>
+
+      <details class="filters">
+        <summary>Filters (optional)</summary>
+        <label>Keyword <input type="text" id="f-keyword" placeholder="only items containing…" /></label>
+        <label>From date <input type="date" id="f-since" /></label>
+        <label>Until date <input type="date" id="f-until" /></label>
+        <label>Keep these IDs
+          <input type="text" id="f-keep" placeholder="e.g. your pinned post, comma-separated" />
+        </label>
+      </details>
+
+      <fieldset class="row">
+        <label>Speed
+          <select id="speed">
+            <option value="cautious">Cautious</option>
+            <option value="normal" selected>Normal</option>
+            <option value="fast">Fast</option>
+          </select>
+        </label>
+        <label class="check test"><input type="checkbox" id="test" checked /> Test run (first 5 only)</label>
+      </fieldset>
+
+      <fieldset class="confirm">
+        <label class="check"><input type="checkbox" id="ack" /> I understand deletion is permanent — there is no undo.</label>
+        <label id="typeRow" class="typeto hidden">Type <b>DELETE</b> to enable the full run
+          <input type="text" id="confirmWord" autocomplete="off" />
+        </label>
+      </fieldset>
+
+      <div class="actions">
+        <button id="start" class="danger" disabled>Start</button>
+        <button id="pause" class="hidden">Pause</button>
+        <button id="resume" class="hidden">Resume</button>
+        <button id="stop" class="ghost hidden">Stop</button>
+      </div>
+      <label class="check resume"><input type="checkbox" id="resumePrev" /> Continue a previous run (skip what was already deleted)</label>
+    </section>
+
+    <section id="progress" class="card progress hidden">
+      <div class="counters">
+        <span><b id="p-deleted">0</b> deleted</span>
+        <span><b id="p-gone">0</b> already gone</span>
+        <span><b id="p-failures">0</b> failures</span>
+      </div>
+      <p id="p-status" class="muted"></p>
+      <progress id="p-bar" class="hidden" max="100" value="0"></progress>
+    </section>
+
+    <footer class="foot">
+      <a href="https://github.com/guilhermekollet/x-cleaner" target="_blank" rel="noopener">Open source</a>
+      · Runs only in your browser
+    </footer>
+
+    <script src="archive.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>

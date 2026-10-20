@@ -1,0 +1,40 @@
+name: Bug report
+description: Something isn't working as expected
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: dropdown
+    id: source
+    attributes:
+      label: Which mode?
+      options:
+        - Recent, no file (timeline)
+        - Archive file
+    validations:
+      required: true
+  - type: input
+    id: popup
+    attributes:
+      label: What did the popup say when it stopped?
+      description: Copy the status message, e.g. "X changed its internal API".
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and version
+      placeholder: "Chrome 141"
+    validations:
+      required: true
+  - type: textarea
+    id: request
+    attributes:
+      label: Failing request (optional)
+      description: >
+        If a run halted, the status of the failing request from the browser's DevTools Network tab
+        (filter for "graphql"). This is what tells us whether X changed its API. Do not paste
+        headers or cookies.

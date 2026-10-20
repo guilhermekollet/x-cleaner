@@ -1,0 +1,19 @@
+name: Feature request
+description: Suggest an idea for X Cleaner
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like to happen?
+  - type: textarea
+    id: privacy
+    attributes:
+      label: Does it require talking to anything other than x.com?
+      description: X Cleaner has no server and uploads nothing. If your idea would change that, say how.

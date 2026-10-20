@@ -1,0 +1,16 @@
+{
+  "name": "x-cleaner",
+  "version": "0.1.0",
+  "description": "A browser extension that deletes your own posts, replies and reposts on X, in batches, at a speed you control. Runs entirely in your browser.",
+  "private": true,
+  "scripts": {
+    "icons": "node scripts/make-icons.mjs",
+    "test": "node --test",
+    "package": "bash scripts/package.sh"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/guilhermekollet/x-cleaner.git"
+  }
+}

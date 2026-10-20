@@ -1,0 +1,4 @@
+#!/bin/bash
+# Checks every commit message against the repository's convention (see scripts/ship.sh).
+# Turn it on with: scripts/ship.sh setup
+exec "$(git rev-parse --show-toplevel)/scripts/ship.sh" check "$1"
