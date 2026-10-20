@@ -7,6 +7,8 @@
   let finished = null;
   // Archive items arrive in parts before "start" (see popup.js), since one message is capped.
   let staged = [];
+  // The last run's settings, so "next batch" repeats it exactly, whatever the popup shows now.
+  let lastConfig = null;
 
   function toConfig(raw) {
     return {
@@ -20,13 +22,14 @@
       speed: XEngine.SPEEDS[raw.speed] || XEngine.SPEEDS.normal,
       limit: raw.limit === "all" ? Infinity : Number(raw.limit) || Infinity,
       resume: !!raw.resume,
+      order: raw.order === "oldest" ? "oldest" : "newest",
+      test: !!raw.test,
       handle: handle(),
     };
   }
 
   function begin(raw) {
     if (XEngine.isRunning()) return { ok: false, error: "already-running" };
-    finished = null;
     let cfg;
     try {
       cfg = toConfig(raw);
@@ -34,6 +37,19 @@
       return { ok: false, error: "bad-config" };
     }
     staged = []; // the run holds its own reference now
+    return run(cfg);
+  }
+
+  // The next batch: the same settings, skipping what the earlier batches already did.
+  function next() {
+    if (XEngine.isRunning()) return { ok: false, error: "already-running" };
+    if (!lastConfig || lastConfig.test) return { ok: false, error: "no-previous-run" };
+    return run({ ...lastConfig, resume: true });
+  }
+
+  function run(cfg) {
+    finished = null;
+    lastConfig = cfg;
     XEngine.start(cfg, (snap) => {
       lastSnapshot = { ...snap, idle: false };
     }).then((final) => {
@@ -56,6 +72,17 @@
           return;
         case "start":
           sendResponse(begin(msg.config));
+          return;
+        case "next":
+          sendResponse(next());
+          return;
+        case "dismiss":
+          // The popup moved on from the last result; reopening it starts at the setup.
+          if (!XEngine.isRunning()) {
+            finished = null;
+            lastSnapshot = { running: false, idle: true };
+          }
+          sendResponse({ ok: true });
           return;
         case "pause":
           XEngine.pause();
