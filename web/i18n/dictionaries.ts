@@ -21,14 +21,12 @@ const en = {
       "A browser extension that deletes your own posts, replies and reposts on X, in batches, at a speed you control. No server, no account access, no fee.",
   },
   a11y: { sections: "Sections", footer: "Footer", menu: "Language and appearance" },
-  nav: { what: "What it does", reach: "Old posts", privacy: "Privacy", install: "Install", faq: "FAQ" },
-  github: "View on GitHub",
+  download: "Download extension",
   menu: { language: "Language", appearance: "Appearance", light: "Light", dark: "Dark" },
   hero: {
     eyebrow: "Open-source browser extension",
     title: "Clear your history on X.",
     text: "Delete your own posts, replies and reposts — in batches, at a speed you control. Everything runs in your browser. No server, no account access, no fee.",
-    cta: "View on GitHub",
     see: "How it works",
   },
   demo: {
@@ -78,7 +76,6 @@ const en = {
       { title: "Load unpacked", text: "Click Load unpacked and pick the folder with manifest.json." },
       { title: "Run it", text: "Open x.com signed in, click the X Cleaner icon, and start with a test run." },
     ],
-    cta: "Get it on GitHub",
   },
   limits: {
     title: "Honest limitations",
@@ -86,6 +83,21 @@ const en = {
       { title: "It can break when X changes", text: "It follows the live site's internal API, which absorbs most changes, but a larger one can still stop it. If that happens, open an issue." },
       { title: "Pace matters", text: "Deleting too fast can make X slow you down or ask for a verification. The presets are deliberately conservative." },
       { title: "A grey area in X's terms", text: "This automates x.com's private web API. Use it on your own account, at a reasonable pace, at your own risk." },
+    ],
+  },
+  repo: {
+    title: "Open source on GitHub",
+    text: "Every line of X Cleaner is public. Read how it works, report a problem, or help make it better.",
+    description: "Delete your own posts, replies and reposts on X — in batches, at a speed you control. Runs entirely in your browser.",
+    stars: "stars",
+    forks: "forks",
+    license: "MIT license",
+    view: "View repository",
+    clone: "Or build it yourself",
+    items: [
+      { title: "Read the code", text: "Plain JavaScript, no dependencies and no build step. See exactly which requests it makes.", cta: "Browse the source", href: "/tree/main/src" },
+      { title: "Report a problem", text: "X changes its site from time to time. If a run halts, an issue with the popup's message helps fix it fast.", cta: "Open an issue", href: "/issues/new/choose" },
+      { title: "Contribute", text: "Pull requests are welcome — a Firefox port, translations, or a sharper test suite.", cta: "Read the guide", href: "/blob/main/CONTRIBUTING.md" },
     ],
   },
   faq: {
@@ -112,14 +124,12 @@ const pt: typeof en = {
       "Uma extensão de navegador que apaga seus posts, respostas e reposts no X, em lotes, no ritmo que você controla. Sem servidor, sem acesso à conta, sem custo.",
   },
   a11y: { sections: "Seções", footer: "Rodapé", menu: "Idioma e aparência" },
-  nav: { what: "O que faz", reach: "Posts antigos", privacy: "Privacidade", install: "Instalar", faq: "Dúvidas" },
-  github: "Ver no GitHub",
+  download: "Baixar extensão",
   menu: { language: "Idioma", appearance: "Aparência", light: "Claro", dark: "Escuro" },
   hero: {
     eyebrow: "Extensão de navegador open source",
     title: "Limpe seu histórico no X.",
     text: "Apague seus posts, respostas e reposts — em lotes, no ritmo que você controla. Tudo roda no seu navegador. Sem servidor, sem acesso à conta, sem custo.",
-    cta: "Ver no GitHub",
     see: "Como funciona",
   },
   demo: {
@@ -169,7 +179,6 @@ const pt: typeof en = {
       { title: "Carregar sem compactação", text: "Clique em Carregar sem compactação e escolha a pasta com o manifest.json." },
       { title: "Use", text: "Abra o x.com logado, clique no ícone do X Cleaner e comece por um teste." },
     ],
-    cta: "Baixar no GitHub",
   },
   limits: {
     title: "Limitações honestas",
@@ -177,6 +186,21 @@ const pt: typeof en = {
       { title: "Pode quebrar quando o X muda", text: "Ele segue a API interna do site ao vivo, o que absorve a maioria das mudanças, mas uma maior ainda pode parar tudo. Se acontecer, abra uma issue." },
       { title: "O ritmo importa", text: "Apagar rápido demais pode fazer o X te frear ou pedir verificação. Os presets são propositalmente conservadores." },
       { title: "Zona cinzenta dos termos do X", text: "Isso automatiza a API web privada do x.com. Use na sua conta, num ritmo razoável, por sua conta e risco." },
+    ],
+  },
+  repo: {
+    title: "Open source no GitHub",
+    text: "Cada linha do X Cleaner é pública. Veja como funciona, relate um problema ou ajude a melhorar.",
+    description: "Apague seus posts, respostas e reposts no X — em lotes, no ritmo que você controla. Roda inteiro no seu navegador.",
+    stars: "estrelas",
+    forks: "forks",
+    license: "Licença MIT",
+    view: "Ver repositório",
+    clone: "Ou compile você mesmo",
+    items: [
+      { title: "Leia o código", text: "JavaScript puro, sem dependências e sem etapa de build. Veja exatamente quais requisições ele faz.", cta: "Ver o código-fonte", href: "/tree/main/src" },
+      { title: "Relate um problema", text: "O X muda o site de tempos em tempos. Se uma rodada parar, uma issue com a mensagem do popup ajuda a corrigir rápido.", cta: "Abrir uma issue", href: "/issues/new/choose" },
+      { title: "Contribua", text: "Pull requests são bem-vindos — um port para o Firefox, traduções ou testes mais completos.", cta: "Ler o guia", href: "/blob/main/CONTRIBUTING.md" },
     ],
   },
   faq: {

@@ -1,0 +1,38 @@
+name: Release
+
+# Pushing a version tag (v0.1.0, v0.2.0, ...) tests and packages the extension and publishes a
+# GitHub release with the zip, under its versioned name and as x-cleaner.zip — the stable name the
+# website's download button points at — plus the checksum.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Package and publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Test
+        run: node --test
+      - name: Check the tag matches manifest.json
+        run: |
+          version="$(node -p "require('./manifest.json').version")"
+          [ "v$version" = "$GITHUB_REF_NAME" ] || { echo "tag $GITHUB_REF_NAME != manifest v$version"; exit 1; }
+      - name: Package
+        run: bash scripts/package.sh
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/*.zip dist/*.sha256 \
+            --title "X Cleaner ${GITHUB_REF_NAME#v}" \
+            --notes-file .github/release-notes.md \
+            --generate-notes \
+            --verify-tag
