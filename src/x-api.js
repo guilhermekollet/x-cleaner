@@ -170,6 +170,17 @@ globalThis.XApi = (() => {
     };
   }
 
+  // A reply to someone else is a reply. One to yourself continues your own thread, which X lists
+  // under Posts, so it counts as a post. X sometimes leaves "in reply to" out (when the post replied
+  // to is gone or hidden), but a post that belongs to another post's conversation is still a reply.
+  function kindOf(tweet, legacy, me) {
+    if (legacy.retweeted_status_result) return "repost";
+    if (legacy.in_reply_to_user_id_str === me) return "post";
+    if (legacy.in_reply_to_status_id_str || legacy.in_reply_to_user_id_str) return "reply";
+    if (legacy.conversation_id_str && legacy.conversation_id_str !== tweet.rest_id) return "reply";
+    return "post";
+  }
+
   // Walks a timeline response, collecting the signed-in user's own entries and the
   // bottom cursor. Each item is tagged so the engine can filter by type.
   function collect(body, me) {
@@ -192,7 +203,7 @@ globalThis.XApi = (() => {
         items.push({
           id: tweet.rest_id,
           createdAt: legacy.created_at,
-          kind: isRepost ? "repost" : replyTo ? "reply" : "post",
+          kind: kindOf(tweet, legacy, me),
           // Posts over 280 characters keep their full text in note_tweet; full_text is cut.
           text: noteText(tweet) || text,
           media,
@@ -247,6 +258,7 @@ globalThis.XApi = (() => {
     // Exposed for tests; not used by the rest of the extension.
     _classify: classify,
     _hasTimeline: hasTimeline,
+    _collect: collect,
     userId,
     ensureMeta,
     // Returns one page of the given profile timeline, with the user's own items only.

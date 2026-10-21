@@ -75,3 +75,25 @@ test("a dropped connection comes back as a passing failure, not an exception", a
   const res = await XApi.deletePost("3");
   assert.equal(res.outcome, "transient");
 });
+
+test("collect: kinds as X really sends them — own thread replies are posts, replies without 'in reply to' are replies", () => {
+  const tw = (id, legacy) => ({
+    __typename: "Tweet",
+    rest_id: id,
+    legacy: { user_id_str: "77", created_at: "Mon Mar 04 12:00:00 +0000 2019", full_text: "x", ...legacy },
+  });
+  const body = {
+    data: {
+      entries: [
+        tw("1", {}), // a plain post
+        tw("2", { in_reply_to_status_id_str: "1", in_reply_to_user_id_str: "77", conversation_id_str: "1" }), // your own thread, listed under Posts
+        tw("3", { conversation_id_str: "900", full_text: "@someone hi" }), // a reply whose original is gone: no "in reply to"
+        tw("4", { in_reply_to_status_id_str: "900", in_reply_to_user_id_str: "55", conversation_id_str: "900" }), // a reply
+        tw("5", { retweeted_status_result: { result: { rest_id: "901", legacy: { full_text: "original" } } } }), // a repost
+        { __typename: "Tweet", rest_id: "6", legacy: { user_id_str: "55", created_at: "Mon Mar 04 12:00:00 +0000 2019" } }, // someone else's
+      ],
+    },
+  };
+  const kinds = Object.fromEntries(XApi._collect(body, "77").items.map((i) => [i.id, i.kind]));
+  assert.deepEqual(kinds, { 1: "post", 2: "post", 3: "reply", 4: "reply", 5: "repost" });
+});
