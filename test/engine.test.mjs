@@ -246,3 +246,56 @@ test("snapshots carry the last few deleted items, newest first, not the ones alr
   assert.deepEqual(final.recent.map((r) => r.id), ["6", "5", "4", "2"]);
   assert.deepEqual(final.recent[0], { id: "6", kind: "post", text: "text 6", createdAt: "Mon Mar 04 12:00:00 +0000 2019", replyTo: null });
 });
+
+// --- What the profile still lists hasn't been deleted -------------------------------------------
+const newestPosts = (over) => ({
+  ...base,
+  types: { post: true, reply: false, repost: false, like: false },
+  source: "timeline",
+  speed: fast,
+  limit: Infinity,
+  order: "newest",
+  resume: true,
+  ...over,
+});
+
+test("a post the profile still lists is tried again, even if an earlier run marked it done", async () => {
+  const { deleted, data } = stubs({ pages: [["90", "80", "70"].map(post)] });
+  // An earlier run marked 90 (as now) and 80 (a bare id, as before 0.3.3) done, yet both are listed.
+  data["xcleaner.done.77"] = { chunks: 1 };
+  data["xcleaner.done.77.0"] = ["post:90", "80"];
+  const final = await XEngine.start(newestPosts());
+  assert.deepEqual([...deleted].sort(), ["70", "80", "90"]);
+  assert.equal(final.deleted, 3);
+  assert.equal(final.seen, 3);
+});
+
+test("a post that keeps failing is tried once per run, not in a loop", async () => {
+  const { data } = stubs({ pages: [["90"].map(post)] });
+  let tries = 0;
+  globalThis.XApi.deletePost = async () => (tries++, { outcome: "error", message: "nope" });
+  const final = await XEngine.start(newestPosts());
+  assert.equal(tries, 1);
+  assert.equal(final.failures, 1);
+  // It is marked done for now; the next run sees it listed and tries it again.
+  assert.ok(data["xcleaner.done.77.0"].includes("post:90"));
+  await XEngine.start(newestPosts());
+  assert.equal(tries, 2);
+});
+
+test("a profile that lists nothing ends with nothing seen, so the popup can say so", async () => {
+  stubs({ pages: [] });
+  const final = await XEngine.start(newestPosts());
+  assert.equal(final.seen, 0);
+  assert.equal(final.deleted + final.gone + final.failures, 0);
+  assert.equal(final.fatal, null);
+});
+
+test("oldest first: a fresh read retries what an earlier run marked done but is still listed", async () => {
+  const { deleted, data } = stubs({ pages: [["90", "80"].map(post)] });
+  data["xcleaner.done.77"] = { chunks: 1 };
+  data["xcleaner.done.77.0"] = ["post:80"];
+  const final = await XEngine.start(newestPosts({ order: "oldest" }));
+  assert.deepEqual(deleted, ["80", "90"]);
+  assert.equal(final.seen, 2);
+});
