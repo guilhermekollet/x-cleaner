@@ -150,10 +150,13 @@ globalThis.XApi = (() => {
     const items = [];
     const seen = new Set(); // a wrapped tweet (TweetWithVisibilityResults) is reached twice
     let bottom = null;
+    let postCount = null; // the profile's post count, for the progress of a full read
     (function walk(node) {
       if (!node || typeof node !== "object") return;
       if (Array.isArray(node)) return node.forEach(walk);
       if (node.cursorType === "Bottom" && node.value) bottom = node.value;
+      if (node.__typename === "User" && node.rest_id === me && node.legacy?.statuses_count != null)
+        postCount = Number(node.legacy.statuses_count) || null;
       const tweet = node.__typename === "TweetWithVisibilityResults" ? node.tweet : node;
       const legacy = tweet && tweet.legacy;
       if (tweet && tweet.rest_id && legacy && legacy.user_id_str === me && legacy.created_at && !seen.has(tweet.rest_id)) {
@@ -174,7 +177,7 @@ globalThis.XApi = (() => {
       }
       for (const k in node) walk(node[k]);
     })(body);
-    return { items, bottom };
+    return { items, bottom, postCount };
   }
 
   async function mutate(opName, variables) {
@@ -216,8 +219,8 @@ globalThis.XApi = (() => {
       if (cursor) variables.cursor = cursor;
       const res = await timelinePage(opName, variables);
       if (res.status !== 200) return { ...res, items: [], bottom: null };
-      const { items, bottom } = collect(res.body, me);
-      return { ...res, items, bottom };
+      const { items, bottom, postCount } = collect(res.body, me);
+      return { ...res, items, bottom, postCount };
     },
     // Deletes one of the user's own posts, replies or reposts. A repost is deleted by its own id
     // (the one the archive and the timeline give us); DeleteRetweet would need the original

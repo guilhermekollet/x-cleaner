@@ -130,14 +130,11 @@
         <span data-i18n="full.banner"></span>
       </p>
 
-      <section class="confirm needs-setup">
-        <!-- The 5-item test is a choice, on until a test has passed once. -->
-        <label class="switch-row">
-          <b data-i18n="test.first"></b>
-          <input type="checkbox" id="testFirst" role="switch" checked />
-        </label>
-        <label class="check"><input type="checkbox" id="ack" /><span data-i18n="confirm.ack"></span></label>
-      </section>
+      <!-- The 5-item test is a choice, on until a test has passed once. -->
+      <label class="switch-row needs-setup">
+        <b data-i18n="test.first"></b>
+        <input type="checkbox" id="testFirst" role="switch" checked />
+      </label>
 
       <button id="start" type="button" class="btn btn-danger btn-block btn-lg needs-setup" disabled></button>
     </main>
