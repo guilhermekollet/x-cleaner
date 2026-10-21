@@ -11,7 +11,11 @@ globalThis.XEngine = (() => {
     fast: { minDelay: 700, maxDelay: 1400, batchSize: 300, batchPause: 30000 },
   };
 
-  // Which profile timeline carries which kinds, so timeline mode reads each once.
+  // The profile timelines timeline mode reads, and the kinds each mostly carries: a timeline is
+  // read when one of its kinds is chosen. Its items, though, are judged by their own kind, never
+  // dropped for the tab they were found on — X lists your thread replies under Posts, and sends
+  // some replies without "in reply to".
+  const TIMELINE_KINDS = ["post", "reply", "repost"];
   const TIMELINES = [
     { op: "UserTweets", kinds: ["post", "repost"] },
     { op: "UserRepliesTimeline", fallback: "UserTweetsAndReplies", kinds: ["reply"] },
@@ -444,7 +448,7 @@ globalThis.XEngine = (() => {
       if (res.postCount) scan.postCount = state.scanTotal = res.postCount;
       let added = 0;
       for (const it of res.items) {
-        if (tl.kinds.includes(it.kind) && !known.has(it.id)) {
+        if (TIMELINE_KINDS.includes(it.kind) && !known.has(it.id)) {
           known.add(it.id);
           scan.items.push(it);
           added++;
@@ -505,9 +509,9 @@ globalThis.XEngine = (() => {
   // list, so after any deletion we reload from the top; when a page has nothing to
   // delete we page deeper with its cursor.
   async function runTimeline(cfg, report) {
+    const kinds = TIMELINE_KINDS.filter((k) => cfg.types[k]);
     for (const tl of TIMELINES) {
-      const kinds = tl.kinds.filter((k) => cfg.types[k]);
-      if (!kinds.length) continue;
+      if (!tl.kinds.some((k) => cfg.types[k])) continue;
       let op = tl.op;
       let cursor = null;
       let stalls = 0;

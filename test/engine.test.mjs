@@ -299,3 +299,45 @@ test("oldest first: a fresh read retries what an earlier run marked done but is 
   assert.deepEqual(deleted, ["80", "90"]);
   assert.equal(final.seen, 2);
 });
+
+test("timeline items count by their own kind, not by the tab they were found on", async () => {
+  // As on a real profile: Posts lists a thread reply (a "reply"), Replies lists a reply X sent
+  // without "in reply to" (a "post"). Neither may be dropped for being on the "wrong" tab.
+  const { data } = stubs();
+  const deleted = [];
+  const byOp = {
+    UserTweets: [{ ...post("90"), kind: "reply" }],
+    UserRepliesTimeline: [{ ...post("80"), kind: "post" }],
+  };
+  globalThis.XApi.deletePost = async (id) => (deleted.push(id), { outcome: "ok" });
+  globalThis.XApi.profilePage = async (op) => ({
+    status: 200,
+    items: (byOp[op] || []).filter((it) => !deleted.includes(it.id)),
+    bottom: null,
+    postCount: null,
+  });
+  const cfg = { ...base, types: { post: true, reply: true, repost: true, like: false }, source: "timeline", speed: fast, limit: Infinity, resume: false };
+  const newest = await XEngine.start({ ...cfg, order: "newest" });
+  assert.deepEqual([...deleted].sort(), ["80", "90"]);
+  assert.equal(newest.seen, 2);
+
+  deleted.length = 0;
+  delete data["xcleaner.scan.77"];
+  const oldest = await XEngine.start({ ...cfg, order: "oldest" });
+  assert.deepEqual([...deleted].sort(), ["80", "90"]);
+  assert.equal(oldest.seen, 2);
+});
+
+test("choosing only posts still leaves replies alone, whichever tab they are on", async () => {
+  stubs();
+  const deleted = [];
+  globalThis.XApi.deletePost = async (id) => (deleted.push(id), { outcome: "ok" });
+  globalThis.XApi.profilePage = async (op) => ({
+    status: 200,
+    items: (op === "UserTweets" ? [post("90"), { ...post("70"), kind: "reply" }] : [{ ...post("80"), kind: "reply" }]).filter((it) => !deleted.includes(it.id)),
+    bottom: null,
+    postCount: null,
+  });
+  await XEngine.start({ ...base, types: { post: true, reply: false, repost: false, like: false }, source: "timeline", speed: fast, limit: Infinity, order: "newest", resume: false });
+  assert.deepEqual(deleted, ["90"]);
+});
