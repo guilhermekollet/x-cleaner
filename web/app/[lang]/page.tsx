@@ -107,7 +107,7 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {d.what.items.map((item, i) => (
                 <div key={i} data-reveal style={after((i % 3) * 80)} className={card}>
-                  <div className="mb-4 grid size-11 place-items-center rounded-full bg-accent-soft text-accent">
+                  <div className="mb-4 text-accent">
                     <WhatIcon index={i} />
                   </div>
                   <h3 className="font-semibold">{item.title}</h3>
@@ -144,7 +144,7 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
             <ul className="mx-auto mt-12 grid max-w-[960px] gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {d.history.items.map((item, i) => (
                 <li key={i} data-reveal style={after(i * 80)} className={card}>
-                  <div className="mb-4 grid size-11 place-items-center rounded-full bg-accent-soft text-accent">
+                  <div className="mb-4 text-accent">
                     <HistoryIcon index={i} />
                   </div>
                   <h3 className="font-semibold">{item.title}</h3>
@@ -162,7 +162,7 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
             <div className="grid gap-4 sm:grid-cols-2">
               {d.privacy.items.map((item, i) => (
                 <div key={i} data-reveal style={after((i % 2) * 80)} className={`${card} flex gap-4`}>
-                  <div className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-full bg-accent-soft text-accent">
+                  <div className="shrink-0 text-accent">
                     <LockIcon />
                   </div>
                   <div>
@@ -203,7 +203,7 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
         <section className="border-t border-line/60 py-20 md:py-28">
           <div className="mx-auto grid max-w-5xl gap-10 px-5 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] md:gap-16">
             <div data-reveal className="md:pt-2">
-              <span className="inline-grid size-11 place-items-center rounded-full bg-warn-soft text-warn">
+              <span className="inline-block text-warn">
                 <LimitIcon index={-1} />
               </span>
               <h2 className={`${sectionTitle} mt-5`}>{d.limits.title}</h2>
@@ -212,7 +212,7 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
             <ul data-reveal style={after(80)} className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface">
               {d.limits.items.map((item, i) => (
                 <li key={i} className="flex gap-4 p-6">
-                  <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-warn-soft text-warn">
+                  <span className="shrink-0 text-warn">
                     <LimitIcon index={i} />
                   </span>
                   <div>
@@ -351,6 +351,9 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
   );
 }
 
+// The icons that mark each point in the sections: one size everywhere, bare (no badge behind them).
+const SECTION_ICON = "size-8";
+
 // One icon per "What it does" card, in the order of `what.items` in the dictionary. Thin outlines
 // in the accent color, like the rest of the site's icons.
 const WHAT_ICONS: React.ReactNode[] = [
@@ -409,7 +412,7 @@ const HISTORY_ICONS: React.ReactNode[] = [
 
 function HistoryIcon({ index }: { index: number }) {
   return (
-    <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className={SECTION_ICON} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       {HISTORY_ICONS[index]}
     </svg>
   );
@@ -446,7 +449,7 @@ const LIMIT_ICONS: Record<number, React.ReactNode> = {
 
 function LimitIcon({ index }: { index: number }) {
   return (
-    <svg viewBox="0 0 24 24" className="size-[22px]" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className={SECTION_ICON} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       {LIMIT_ICONS[index]}
     </svg>
   );
@@ -454,14 +457,14 @@ function LimitIcon({ index }: { index: number }) {
 
 function WhatIcon({ index }: { index: number }) {
   return (
-    <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className={SECTION_ICON} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       {WHAT_ICONS[index]}
     </svg>
   );
 }
 function LockIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="size-4.5" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className={SECTION_ICON} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <rect x="4.5" y="10.5" width="15" height="10" rx="2.5" />
       <path d="M8 10.5V7a4 4 0 0 1 8 0v3.5" />
     </svg>
