@@ -91,7 +91,8 @@ const en = {
     ],
     mock: {
       label: "Illustration: the X Cleaner history page, open in a browser tab, listing six deleted posts with buttons to download them as JSON or CSV",
-      address: "chrome-extension://…/src/history.html",
+      tab: "Deletion history · X Cleaner",
+      address: "kpmgchlnbjdmnafkbiaelphdgfnmhdjo/src/history.html",
       tagline: "What X Cleaner deleted, kept as a backup",
       page: "Deletion history",
       privacy: "Kept only in this browser. Nothing is uploaded; the backups are made on your computer.",
@@ -250,7 +251,8 @@ const pt: typeof en = {
     ],
     mock: {
       label: "Ilustração: a página de histórico do X Cleaner, aberta numa aba do navegador, com seis posts apagados e botões para baixá-los em JSON ou CSV",
-      address: "chrome-extension://…/src/history.html",
+      tab: "Histórico de exclusões · X Cleaner",
+      address: "kpmgchlnbjdmnafkbiaelphdgfnmhdjo/src/history.html",
       tagline: "O que o X Cleaner apagou, guardado como backup",
       page: "Histórico de exclusões",
       privacy: "Fica só neste navegador. Nada é enviado; os backups são gerados no seu computador.",

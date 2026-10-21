@@ -38,21 +38,59 @@ export function HistoryDemo({ dict, lang }: { dict: Dictionary; lang: Locale }) 
       role="img"
       aria-label={m.label}
       ref={frameRef}
-      className="relative w-full max-w-[960px] overflow-hidden rounded-2xl border border-line bg-bg shadow-2xl shadow-black/20 select-none"
+      className="@container relative w-full max-w-[960px] overflow-hidden rounded-[10px] border border-black/15 bg-bg shadow-2xl shadow-black/25 select-none dark:border-white/15"
     >
-      {/* Browser toolbar: window buttons and the extension page's address. */}
-      <div className="flex h-11 items-center gap-3 border-b border-line bg-mist px-3">
-        <span className="flex gap-1.5" aria-hidden="true">
-          <i className="size-2.5 rounded-full bg-[#ff5f57]" />
-          <i className="size-2.5 rounded-full bg-[#febc2e]" />
-          <i className="size-2.5 rounded-full bg-[#28c840]" />
-        </span>
-        <span className="flex h-7 min-w-0 flex-1 items-center gap-1.5 rounded-full bg-fog px-3 text-[13px] text-muted">
-          <Mark className="size-3.5 shrink-0 text-fg" />
-          <span className="shrink-0 text-fg">X Cleaner</span>
-          <span className="truncate">| {m.address}</span>
-        </span>
+      {/* Chrome on macOS: the tab strip (window buttons, the page's tab, new tab) and the toolbar
+          (back, forward, reload, the omnibox with the page's address, extensions, profile, menu),
+          in Chrome's own light and dark colors. */}
+      <div className="bg-[#dee1e6] text-[#5f6368] dark:bg-[#202124] dark:text-[#9aa0a6]">
+        <div className="flex h-[38px] items-end gap-1 pl-3.5">
+          <span className="mr-3 flex gap-2 self-center" aria-hidden="true">
+            <i className="size-3 rounded-full bg-[#ff5f57]" />
+            <i className="size-3 rounded-full bg-[#febc2e]" />
+            <i className="size-3 rounded-full bg-[#28c840]" />
+          </span>
+          {/* The active tab, joined to the toolbar by curved feet, as Chrome draws it. */}
+          <span className="relative flex h-[31px] w-[236px] min-w-0 items-center gap-2 rounded-t-[10px] bg-white px-3 text-[12px] text-[#1f1f1f] dark:bg-[#35363a] dark:text-[#e8eaed]">
+            <i className="absolute bottom-0 -left-2.5 size-2.5 [background:radial-gradient(circle_at_0_0,transparent_10px,#fff_10.5px)] dark:[background:radial-gradient(circle_at_0_0,transparent_10px,#35363a_10.5px)]" />
+            <i className="absolute -right-2.5 bottom-0 size-2.5 [background:radial-gradient(circle_at_100%_0,transparent_10px,#fff_10.5px)] dark:[background:radial-gradient(circle_at_100%_0,transparent_10px,#35363a_10.5px)]" />
+            <Mark className="size-4 shrink-0" />
+            <span className="min-w-0 flex-1 truncate">{m.tab}</span>
+            <Icon d="M7 7l10 10M17 7 7 17" className="size-3.5 shrink-0 text-[#5f6368] dark:text-[#9aa0a6]" width={2} />
+          </span>
+          <span className="ml-1.5 grid size-7 place-items-center self-center">
+            <Icon d="M12 5v14M5 12h14" className="size-4" width={2} />
+          </span>
+        </div>
+        <div className="flex h-10 items-center gap-1 bg-white px-2 dark:bg-[#35363a]">
+          <ChromeButton d="M19 12H5M11 18l-6-6 6-6" />
+          <ChromeButton d="M5 12h14M13 18l6-6-6-6" dim wide />
+          <ChromeButton d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7" />
+          <span className="mx-1 flex h-[30px] min-w-0 flex-1 items-center gap-2 rounded-full bg-[#f1f3f4] pr-2.5 pl-3 text-[13px] dark:bg-[#202124]">
+            <Icon d={PUZZLE} className="size-4 shrink-0" />
+            <span className="min-w-0 flex-1 truncate">
+              <span className="text-[#1f1f1f] dark:text-[#e8eaed]">chrome-extension://</span>
+              {m.address}
+            </span>
+            <Icon d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z" className="size-4 shrink-0" />
+          </span>
+          <ChromeButton d={PUZZLE} wide />
+          <span className="hidden size-[30px] place-items-center @min-[520px]:grid">
+            <Mark className="size-[18px] text-[#1f1f1f] dark:text-[#e8eaed]" />
+          </span>
+          <span className="mx-1 grid size-[22px] place-items-center rounded-full bg-[#1d9bf0] text-[11px] font-bold text-white" aria-hidden="true">
+            {handle[0].toUpperCase()}
+          </span>
+          <span className="grid size-[30px] place-items-center">
+            <svg viewBox="0 0 24 24" className="size-4" fill="currentColor" aria-hidden="true">
+              <circle cx="12" cy="5.5" r="1.7" />
+              <circle cx="12" cy="12" r="1.7" />
+              <circle cx="12" cy="18.5" r="1.7" />
+            </svg>
+          </span>
+        </div>
       </div>
+      <div className="h-px bg-[#dadce0] dark:bg-[#202124]" />
 
       {/* The page, at its own sizes, zoomed to the frame. The list fades out at the bottom, as a
           cropped screenshot would. */}
@@ -163,6 +201,19 @@ export function HistoryDemo({ dict, lang }: { dict: Dictionary; lang: Locale }) 
 }
 
 const DOWNLOAD = "M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19h14";
+// Chrome's extensions icon, a puzzle piece.
+const PUZZLE =
+  "M10 4.5a2 2 0 0 1 4 0V6h3.5a1 1 0 0 1 1 1v3.5H17a2 2 0 0 0 0 4h1.5V18a1 1 0 0 1-1 1H14v-1.5a2 2 0 0 0-4 0V19H6.5a1 1 0 0 1-1-1v-3.5H7a2 2 0 0 0 0-4H5.5V7a1 1 0 0 1 1-1H10z";
+
+// A round toolbar button with one outline icon, as in Chrome's toolbar. `wide` ones only show when
+// the window has room, as Chrome drops them in a narrow window.
+function ChromeButton({ d, dim, wide }: { d: string; dim?: boolean; wide?: boolean }) {
+  return (
+    <span className={`${wide ? "hidden @min-[520px]:grid" : "grid"} size-[30px] shrink-0 place-items-center ${dim ? "opacity-40" : ""}`}>
+      <Icon d={d} className="size-[18px]" width={1.9} />
+    </span>
+  );
+}
 
 function Icon({ d, className, width = 1.8 }: { d: string; className?: string; width?: number }) {
   return (
