@@ -46,6 +46,9 @@ you are signed in to. Nothing is uploaded, and you never hand your account to a 
 - **Filters**: by type, by keyword, by date range, and a keep-list of IDs (for your pinned post, say).
 - **Speed you control**: Cautious, Normal or Fast presets, each a trade of pace against the chance X
   slows you down. It reads X's own rate-limit signal and waits automatically when told to.
+- **Holds up over long runs**: if the connection drops or X fails for a moment, it waits and tries
+  the same item again, with growing waits; if X keeps failing, it pauses itself and says so,
+  instead of writing items off. When X moves its internal API, it reads the page again and goes on.
 - **Batches and order**: delete in batches of 100 to 2,500 (or everything at once); a batch stops
   when it fills and offers the next one, which repeats the same settings and skips what is done.
   Delete **newest first** or **oldest first**. Oldest first without the archive reads your whole

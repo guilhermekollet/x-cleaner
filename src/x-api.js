@@ -116,16 +116,42 @@ globalThis.XApi = (() => {
     };
   }
 
-  async function timelinePage(opName, variables) {
-    const { operations, featureValues } = await ensureMeta();
-    const op = operations[opName];
-    if (!op) throw new Error("operation-missing:" + opName);
-    const u = new URL(`${api}/${op.queryId}/${opName}`);
-    u.searchParams.set("variables", JSON.stringify(variables));
-    u.searchParams.set("features", JSON.stringify(featuresFor(op, featureValues)));
-    u.searchParams.set("fieldToggles", JSON.stringify(togglesFor(op)));
-    const r = await fetch(u.toString(), { credentials: "include", headers: headers() });
-    return parseRate(r, await r.json().catch(() => null));
+  // Sends one request for an operation. x.com rotates query ids now and then: an operation that
+  // has gone missing from the cached bundle, or a 404, makes it read the page's bundle again and
+  // retry once. A request that never reaches x.com (offline, a dropped connection) comes back as
+  // status 0 instead of throwing, so the engine can wait and retry it.
+  async function withOperation(opName, send) {
+    for (let fresh = false; ; fresh = true) {
+      const { operations, featureValues } = await ensureMeta();
+      const op = operations[opName];
+      if (!op) {
+        if (fresh) throw new Error("operation-missing:" + opName);
+        meta = null;
+        continue;
+      }
+      let res;
+      try {
+        const r = await send(op, featureValues);
+        res = parseRate(r, await r.json().catch(() => null));
+      } catch (e) {
+        res = { status: 0, body: null, rate: {}, error: String(e && e.message ? e.message : e) };
+      }
+      if (res.status === 404 && !fresh) {
+        meta = null;
+        continue;
+      }
+      return res;
+    }
+  }
+
+  function timelinePage(opName, variables) {
+    return withOperation(opName, (op, featureValues) => {
+      const u = new URL(`${api}/${op.queryId}/${opName}`);
+      u.searchParams.set("variables", JSON.stringify(variables));
+      u.searchParams.set("features", JSON.stringify(featuresFor(op, featureValues)));
+      u.searchParams.set("fieldToggles", JSON.stringify(togglesFor(op)));
+      return fetch(u.toString(), { credentials: "include", headers: headers() });
+    });
   }
 
   function noteText(tweet) {
@@ -180,36 +206,47 @@ globalThis.XApi = (() => {
     return { items, bottom, postCount };
   }
 
-  async function mutate(opName, variables) {
-    const { operations } = await ensureMeta();
-    const op = operations[opName];
-    if (!op) throw new Error("operation-missing:" + opName);
-    const r = await fetch(`${api}/${op.queryId}/${opName}`, {
-      method: "POST",
-      credentials: "include",
-      headers: headers(),
-      body: JSON.stringify({ variables, queryId: op.queryId }),
-    });
-    return parseRate(r, await r.json().catch(() => null));
+  function mutate(opName, variables) {
+    return withOperation(opName, (op) =>
+      fetch(`${api}/${op.queryId}/${opName}`, {
+        method: "POST",
+        credentials: "include",
+        headers: headers(),
+        body: JSON.stringify({ variables, queryId: op.queryId }),
+      })
+    );
   }
 
-  // Turns an HTTP result into one of: ok | gone | limited | auth | error.
+  // Turns an HTTP result into one of: ok | gone | limited | auth | transient | error.
+  // "transient" is X (or the connection) failing for a moment — no answer, a 5xx, an empty or
+  // non-JSON body, "over capacity": the item is fine and is tried again later. "error" is about
+  // this one item, which is counted as a failure and skipped.
   function classify(res, okPayload) {
     const errors = res.body?.errors || [];
     const code = (c) => errors.some((e) => e.code === c);
+    const message = errors.map((e) => e.message).join("; ") || res.error || "";
     if (res.status === 429 || code(88)) return { outcome: "limited", rate: res.rate };
     if (res.status === 401 || res.status === 403 || code(32) || code(64) || code(326))
-      return { outcome: "auth", message: errors.map((e) => e.message).join("; ") };
+      return { outcome: "auth", message };
     if (okPayload) return { outcome: "ok" };
-    // 144 / "No status found" means it is already gone — treat as done, not a failure.
-    if (code(144) || errors.some((e) => /no status found|not found/i.test(e.message)))
-      return { outcome: "gone" };
+    // Still 404 after reading the bundle again: the operation itself changed.
     if (res.status === 404) return { outcome: "auth", message: "endpoint changed (404)" };
-    return { outcome: "error", status: res.status, message: errors.map((e) => e.message).join("; ") };
+    // 144 / "No status found" means it is already gone — treat as done, not a failure.
+    if (code(144) || errors.some((e) => /no status found|not found/i.test(e.message))) return { outcome: "gone" };
+    if (res.status === 0 || res.status >= 500 || !res.body || code(130) || code(131))
+      return { outcome: "transient", status: res.status, message: message || "no answer" };
+    return { outcome: "error", status: res.status, message };
   }
+
+  // A page that came back 200 but without timeline data (an error body, or nothing) is a passing
+  // problem, not the end of the timeline.
+  const hasTimeline = (body) => !!body?.data && !(body.errors?.length && !body.data.user);
 
   return {
     BEARER,
+    // Exposed for tests; not used by the rest of the extension.
+    _classify: classify,
+    _hasTimeline: hasTimeline,
     userId,
     ensureMeta,
     // Returns one page of the given profile timeline, with the user's own items only.
@@ -218,9 +255,11 @@ globalThis.XApi = (() => {
       const variables = { userId: me, count, includePromotedContent: false, withCommunity: true, withVoice: true };
       if (cursor) variables.cursor = cursor;
       const res = await timelinePage(opName, variables);
-      if (res.status !== 200) return { ...res, items: [], bottom: null };
+      // `transient`: worth retrying the same page (no answer, a 5xx, or a 200 without data).
+      const transient = res.status === 0 || res.status >= 500 || (res.status === 200 && !hasTimeline(res.body));
+      if (res.status !== 200 || transient) return { ...res, items: [], bottom: null, transient };
       const { items, bottom, postCount } = collect(res.body, me);
-      return { ...res, items, bottom, postCount };
+      return { ...res, items, bottom, postCount, transient: false };
     },
     // Deletes one of the user's own posts, replies or reposts. A repost is deleted by its own id
     // (the one the archive and the timeline give us); DeleteRetweet would need the original
@@ -236,3 +275,6 @@ globalThis.XApi = (() => {
     },
   };
 })();
+
+// Allow the pure parts to be imported by the Node test suite. The browser ignores this.
+if (typeof module !== "undefined" && module.exports) module.exports = globalThis.XApi;

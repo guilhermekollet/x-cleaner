@@ -66,18 +66,22 @@
         Object.assign(record, { deleted: snap.deleted, gone: snap.gone, failures: snap.failures });
         saveRecord();
       }
-    }).then((final) => {
-      finished = { ...final, idle: false };
-      lastSnapshot = finished;
-      Object.assign(record, {
-        status: final.fatal ? "failed" : final.stopped ? "stopped" : "finished",
-        deleted: final.deleted,
-        gone: final.gone,
-        failures: final.failures,
-        limitReached: !!final.limitReached,
+    })
+      // The engine ends every run with a final snapshot; if it ever throws instead, the run still
+      // ends here, as failed, rather than looking like it works forever.
+      .catch((e) => ({ ...lastSnapshot, running: false, fatal: String(e && e.message ? e.message : e) }))
+      .then((final) => {
+        finished = { ...final, idle: false };
+        lastSnapshot = finished;
+        Object.assign(record, {
+          status: final.fatal ? "failed" : final.stopped ? "stopped" : "finished",
+          deleted: final.deleted || 0,
+          gone: final.gone || 0,
+          failures: final.failures || 0,
+          limitReached: !!final.limitReached,
+        });
+        saveRecord();
       });
-      saveRecord();
-    });
     return { ok: true };
   }
 
