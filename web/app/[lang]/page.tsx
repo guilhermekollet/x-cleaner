@@ -158,7 +158,7 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
               </ul>
             </div>
             <div data-reveal style={after(160)} className="flex justify-center md:justify-end">
-              <HistoryDemo dict={d} />
+              <HistoryDemo dict={d} lang={lang} />
             </div>
           </div>
         </section>
