@@ -398,17 +398,47 @@ function renderRecent(list) {
   }
   for (const r of [...list].reverse()) {
     if (box.querySelector(`[data-key="${CSS.escape(key(r))}"]`)) continue;
-    const li = document.createElement("li");
-    li.dataset.key = key(r);
-    const kind = document.createElement("span");
-    kind.className = "kind";
-    kind.textContent = t("kind." + r.kind);
-    const txt = document.createElement("span");
-    txt.className = "txt";
-    txt.textContent = r.text || r.id;
-    li.append(kind, txt);
-    box.prepend(li);
+    box.prepend(recentPost(r, key(r)));
   }
+}
+
+// One deleted item drawn like a post on x.com: avatar, name, @handle · date, then "Replying to" or
+// "You reposted" when it applies, and the text. Built from text nodes only.
+function recentPost(r, k) {
+  const el = (tag, cls, text) => {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  };
+  // Whose post it is: yours, the reposted author (from "RT @name:"), or unknown for a like.
+  const mine = (profilePath || "").replace(/^\//, "");
+  const rt = r.kind === "repost" ? (r.text || "").match(/^RT @(\w+): ?/) : null;
+  const handle = r.kind === "like" ? "" : rt ? rt[1] : mine;
+  const text = rt ? r.text.slice(rt[0].length) : r.text;
+  const li = el("li");
+  li.dataset.key = k;
+  li.append(el("span", "av", (handle[0] || "?").toUpperCase()));
+  const body = el("div", "body");
+  const head = el("div", "head");
+  head.append(el("b", null, handle || (r.kind === "like" ? t("history.unknownAuthor") : t("run.you"))));
+  if (handle) head.append(el("span", null, "@" + handle));
+  const when = r.createdAt && new Date(r.createdAt);
+  if (when && !Number.isNaN(when.getTime())) {
+    head.append(el("span", null, "·"), el("span", "when", new Intl.DateTimeFormat(XI18n.locale, { dateStyle: "medium" }).format(when)));
+  }
+  if (r.kind === "repost" || r.kind === "like") body.append(el("div", "ctx", t("kind." + r.kind)));
+  body.append(head);
+  if (r.kind === "reply" && r.replyTo) {
+    // "Replying to @name", the @name in X's blue.
+    const [before, after = ""] = t("run.replyTo").split("{user}");
+    const ctx = el("div", "ctx", before);
+    ctx.append(el("span", "at", "@" + r.replyTo), after);
+    body.append(ctx);
+  }
+  body.append(el("p", "txt", text || r.id));
+  li.append(body);
+  return li;
 }
 
 function backToSetup() {

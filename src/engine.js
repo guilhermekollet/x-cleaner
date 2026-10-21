@@ -87,7 +87,16 @@ globalThis.XEngine = (() => {
       case "ok":
         state.deleted++;
         state.processed.add(item.id);
-        state.recent = [{ id: item.id, kind: item.kind, text: (item.text || "").slice(0, RECENT_TEXT) }, ...state.recent].slice(0, RECENT);
+        state.recent = [
+          {
+            id: item.id,
+            kind: item.kind,
+            text: (item.text || "").slice(0, RECENT_TEXT),
+            createdAt: item.createdAt || null,
+            replyTo: item.replyTo?.user || null,
+          },
+          ...state.recent,
+        ].slice(0, RECENT);
         await remember(item);
         break;
       case "gone":
