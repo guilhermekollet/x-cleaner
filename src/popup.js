@@ -386,7 +386,8 @@ $("stop").addEventListener("click", () => send("stop"));
 // are added on top and animate in; ones that dropped off the list animate out, then go.
 function renderRecent(list) {
   const box = $("recent");
-  $("recentBox").classList.toggle("hidden", !list.length);
+  $("recentBox").classList.remove("hidden"); // there from the start of the run, at its full height
+  box.dataset.empty = t("run.recentEmpty");
   const key = (r) => r.kind + ":" + r.id;
   const keys = new Set(list.map(key));
   for (const el of [...box.children]) {
@@ -428,6 +429,7 @@ function recentPost(r, k) {
     head.append(el("span", null, "·"), el("span", "when", new Intl.DateTimeFormat(XI18n.locale, { dateStyle: "medium" }).format(when)));
   }
   if (r.kind === "repost" || r.kind === "like") body.append(el("div", "ctx", t("kind." + r.kind)));
+  if (r.kind === "repost" || r.kind === "like" || (r.kind === "reply" && r.replyTo)) li.classList.add("has-ctx");
   body.append(head);
   if (r.kind === "reply" && r.replyTo) {
     // "Replying to @name", the @name in X's blue.
