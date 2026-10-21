@@ -46,6 +46,11 @@ you are signed in to. Nothing is uploaded, and you never hand your account to a 
 - **Filters**: by type, by keyword, by date range, and a keep-list of IDs (for your pinned post, say).
 - **Speed you control**: Cautious, Normal or Fast presets, each a trade of pace against the chance X
   slows you down. It reads X's own rate-limit signal and waits automatically when told to.
+- **Batches and order**: delete in batches of 100 to 2,500 (or everything at once); a batch stops
+  when it fills and offers the next one, which repeats the same settings and skips what is done.
+  Delete **newest first** or **oldest first**. Oldest first without the archive reads your whole
+  profile before deleting, so it reaches only what the profile lists (about 3,200 posts). Pace,
+  batch size and order are remembered.
 - **An optional test run** that stops after 5, so you can confirm it deletes the right things
   first: a switch beside the confirmation, on until a test has passed once.
 - **Pause, resume and stop**, and a saved progress list so an interrupted run continues where it
@@ -79,7 +84,9 @@ The X Cleaner icon appears in the toolbar.
 4. Leave **Test with 5 first** on, tick **I understand deletion is permanent**, and click **Run a
    test with 5**.
 5. Check that the 5 it removed were the right ones, then click **Continue and delete the rest** (or
-   turn **Test with 5 first** off), tick the confirmation again and click **Delete everything**.
+   turn **Test with 5 first** off), pick a batch size and an order, tick the confirmation again and
+   click the main button (for example **Delete the 500 oldest**). When a batch is done, click
+   **Next batch** to go on.
 
 Keep the x.com tab open while it runs; you can close the popup, and reopen it to see progress. A full
 archive of many thousands of posts takes a few hours because of the safety pauses.

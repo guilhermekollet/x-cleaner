@@ -29,6 +29,15 @@ const isTest = () => $("testFirst").checked;
 
 const sourceValue = () => document.querySelector('input[name="source"]:checked').value;
 const speedValue = () => document.querySelector('input[name="speed"]:checked').value;
+const batchValue = () => $("batch").value || DEFAULT_BATCH; // a number as text, or "all"
+const orderValue = () => ($("order").value === "oldest" ? "oldest" : "newest");
+
+// How many a run deletes before it stops and offers the next batch, and in which order. These and
+// the pace are remembered between openings.
+const BATCHES = ["100", "250", "500", "1000", "2500", "all"];
+const DEFAULT_BATCH = "500";
+const PREFS_KEY = "xcleaner.prefs";
+let prefs = { speed: "normal", batch: DEFAULT_BATCH, order: "newest" };
 const selectedTypes = () => ({ post: $("t-post").checked, reply: $("t-reply").checked, repost: $("t-repost").checked, like: $("t-like").checked });
 
 async function send(type, payload) {
@@ -46,7 +55,8 @@ XI18n.onChange(renderText);
 // Re-renders every piece of copy that depends on state, in the current language.
 function renderText() {
   $("accountText").textContent = t(accountKey);
-  $("start").textContent = isTest() ? t("start.test") : t("start.all");
+  renderOptions();
+  $("start").textContent = startLabel();
   $("fullBanner").classList.toggle("hidden", !testPassed);
   renderSummary();
   refreshHistoryCount();
@@ -63,8 +73,11 @@ async function init() {
   renderText();
   await XI18n.load();
   try {
-    if ((await chrome.storage.local.get(TESTED_KEY))[TESTED_KEY]) $("testFirst").checked = false;
+    const got = await chrome.storage.local.get([TESTED_KEY, PREFS_KEY]);
+    if (got[TESTED_KEY]) $("testFirst").checked = false;
+    prefs = { ...prefs, ...got[PREFS_KEY] };
   } catch {}
+  applyPrefs();
   renderText();
 
   const tab = inTab
@@ -81,9 +94,17 @@ async function init() {
   if (!signedIn) return setAccount("out", "status.signedOut");
   setAccount("in", "status.ready");
   refreshStart();
-  // If a run is already going (the popup was reopened), go straight to progress.
+  // If a run is already going (the popup was reopened), go straight to progress. A run that ended
+  // with a next step waiting (a passed test, a full batch) shows that result again.
   const st = await send("status");
   if (st && st.running) enterRunning();
+  else if (st && st.finished && nextStepWaiting(st.finished)) {
+    lastRunWasTest = !!st.finished.test;
+    $("setup").classList.add("hidden");
+    $("progress").classList.remove("hidden");
+    render(st.finished, true);
+    exitRunning(st.finished);
+  }
 }
 
 function setAccount(state, key) {
@@ -147,6 +168,48 @@ function renderSummary() {
   box.innerHTML = `<span class="total">${t("archive.items", { n: fmt.format(archiveState.total) })}</span>${tags}`;
 }
 
+// --- Batch size, order and pace ------------------------------------------------------
+// The selects are filled here so their options follow the language.
+function renderOptions() {
+  const fmt = new Intl.NumberFormat(XI18n.locale);
+  const fill = (select, options) => {
+    const value = select.value;
+    select.replaceChildren(...options.map(([v, label]) => new Option(label, v)));
+    if (value) select.value = value;
+  };
+  fill($("batch"), BATCHES.map((b) => [b, b === "all" ? t("batch.all") : t("batch.size", { n: fmt.format(Number(b)) })]));
+  fill($("order"), [["newest", t("order.newest")], ["oldest", t("order.oldest")]]);
+}
+
+function applyPrefs() {
+  renderOptions();
+  $("batch").value = BATCHES.includes(String(prefs.batch)) ? String(prefs.batch) : DEFAULT_BATCH;
+  $("order").value = prefs.order === "oldest" ? "oldest" : "newest";
+  const speed = document.querySelector(`input[name="speed"][value="${prefs.speed}"]`);
+  if (speed) speed.checked = true;
+}
+
+function savePrefs() {
+  prefs = { speed: speedValue(), batch: batchValue(), order: orderValue() };
+  chrome.storage.local.set({ [PREFS_KEY]: prefs }).catch(() => {});
+}
+
+for (const id of ["batch", "order"]) $(id).addEventListener("change", () => {
+  savePrefs();
+  renderText();
+  refreshStart();
+});
+for (const r of document.querySelectorAll('input[name="speed"]')) r.addEventListener("change", savePrefs);
+
+// The main button says exactly what a click will do.
+function startLabel() {
+  if (isTest()) return t("start.test");
+  const oldest = orderValue() === "oldest";
+  const batch = batchValue();
+  if (batch === "all") return t(oldest ? "start.allOldest" : "start.all");
+  return t(oldest ? "start.batchOldest" : "start.batchNewest", { n: new Intl.NumberFormat(XI18n.locale).format(Number(batch)) });
+}
+
 // --- Enabling Start --------------------------------------------------------------
 for (const id of ["ack", "t-post", "t-reply", "t-repost", "t-like"]) $(id).addEventListener("input", refreshStart);
 for (const r of document.querySelectorAll('input[name="source"]')) r.addEventListener("change", refreshStart);
@@ -164,6 +227,13 @@ function refreshStart() {
   document.body.classList.toggle("archive-mode", archive);
   $("archiveRow").classList.toggle("hidden", !archive);
   $("likeHint").classList.toggle("hidden", !($("t-like").checked && !archive));
+  const oldest = orderValue() === "oldest";
+  // Oldest first without the archive reaches only what the profile lists; the Recent card says so.
+  const hintKey = oldest ? "source.timelineHintOldest" : "source.timelineHint";
+  $("timelineHint").dataset.i18n = hintKey;
+  $("timelineHint").textContent = t(hintKey);
+  document.querySelector(".order-newest").classList.toggle("hidden", oldest);
+  document.querySelector(".order-oldest").classList.toggle("hidden", !oldest);
   const types = selectedTypes();
   const anyType = archive ? Object.values(types).some(Boolean) : types.post || types.reply || types.repost;
   const ready = signedIn && anyType && confirmed() && (!archive || (archiveItems && archiveItems.length));
@@ -196,7 +266,9 @@ $("start").addEventListener("click", async () => {
     until: $("f-until").value ? new Date($("f-until").value + "T23:59:59").toISOString() : null,
     keepIds: parseKeep(),
     speed: speedValue(),
-    limit: isTest() ? 5 : "all",
+    limit: isTest() ? 5 : batchValue(),
+    test: isTest(),
+    order: orderValue(),
     // After a test, the full run skips what the test already removed.
     resume: $("resumePrev").checked || testPassed,
   };
@@ -220,10 +292,11 @@ $("resume").addEventListener("click", async () => {
 $("stop").addEventListener("click", () => send("stop"));
 function backToSetup() {
   lastRender = null;
+  send("dismiss");
   $("progress").classList.add("hidden");
   $("setup").classList.remove("hidden");
   for (const id of ["pause", "stop"]) $(id).classList.remove("hidden");
-  for (const id of ["again", "viewProfile", "continueFull"]) $(id).classList.add("hidden");
+  for (const id of ["again", "viewProfile", "continueFull", "nextBatch"]) $(id).classList.add("hidden");
   renderText();
   refreshStart();
 }
@@ -234,6 +307,15 @@ $("viewProfile").addEventListener("click", async () => {
   if (tabId === null) return;
   await chrome.tabs.update(tabId, { url: `${new URL("https://x.com")}${(profilePath || "/home").replace(/^\//, "")}`, active: true });
 });
+// After a full batch: the same settings again, skipping what is already done. The tab keeps the
+// settings, so this works even when the popup was closed and reopened during the run.
+$("nextBatch").addEventListener("click", async () => {
+  lastRunWasTest = false;
+  const res = await send("next");
+  if (!res || !res.ok) return setAccount("out", res && res.error === "already-running" ? "run.alreadyRunning" : "run.couldNotStart");
+  enterRunning();
+});
+
 $("continueFull").addEventListener("click", () => {
   testPassed = true;
   $("testFirst").checked = false;
@@ -247,7 +329,7 @@ function enterRunning() {
   $("setup").classList.add("hidden");
   $("progress").classList.remove("hidden");
   for (const id of ["pause", "stop"]) $(id).classList.remove("hidden");
-  for (const id of ["resume", "again", "viewProfile", "continueFull"]) $(id).classList.add("hidden");
+  for (const id of ["resume", "again", "viewProfile", "continueFull", "nextBatch"]) $(id).classList.add("hidden");
   if (!polling) polling = setInterval(poll, 1000);
   poll();
 }
@@ -258,7 +340,13 @@ function exitRunning(final) {
   for (const id of ["pause", "resume", "stop"]) $(id).classList.add("hidden");
   // A test that went through offers the next step; anything else offers a new run.
   const testOk = lastRunWasTest && final && !final.fatal && !final.stopped;
+  const more = batchFull(final);
   $("again").classList.toggle("hidden", testOk);
+  // Beside "Next batch", "New run" steps back to an outline button.
+  $("again").classList.toggle("btn-solid", !more);
+  $("again").classList.toggle("btn-block", !more);
+  $("again").classList.toggle("btn-outline", more);
+  $("nextBatch").classList.toggle("hidden", !more);
   $("viewProfile").classList.toggle("hidden", !testOk);
   $("continueFull").classList.toggle("hidden", !testOk);
   if (testOk) chrome.storage.local.set({ [TESTED_KEY]: true }).catch(() => {});
@@ -284,11 +372,15 @@ function render(s, done) {
 
   // Progress counts this run only, so a resumed run starts from zero against what is left.
   const acted = (s.deleted || 0) + (s.gone || 0) + (s.failures || 0);
-  const hasTotal = s.source === "archive" && s.total > 0;
+  const hasTotal = s.total > 0;
 
   let msg;
   if (s.fatal) msg = t("run.stoppedWith", { reason: friendlyFatal(s.fatal) });
   else if (done && lastRunWasTest && !s.stopped) msg = t("testDone.text", { n: fmt.format((s.deleted || 0) + (s.gone || 0)) });
+  else if (done && batchFull(s)) {
+    msg = t("run.batchDone", { n: fmt.format((s.deleted || 0) + (s.gone || 0)) });
+    if (hasTotal && s.total > acted) msg += " " + t("run.left", { n: fmt.format(s.total - acted) });
+  } else if (s.scanning) msg = t("run.scanning", { n: fmt.format(s.found || 0) });
   else if (done) msg = s.stopped ? t("run.stopped") : t("run.done");
   else if (s.waiting || s.waitUntil) msg = t("run.limited", { s: secsUntil(s.waitUntil) });
   else if (s.batchUntil) msg = t("run.batch", { s: secsUntil(s.batchUntil) });
@@ -300,10 +392,15 @@ function render(s, done) {
   refreshHistoryCount();
 
   const bar = $("p-bar");
-  bar.classList.toggle("done", !!done && !s.fatal && !s.stopped);
+  // A full batch isn't the end: the bar keeps showing how much of the total is done.
+  bar.classList.toggle("done", !!done && !s.fatal && !s.stopped && !batchFull(s));
   bar.classList.toggle("indeterminate", !done && !hasTotal);
   bar.firstElementChild.style.width = hasTotal ? `${Math.min(100, (acted / s.total) * 100)}%` : "";
 }
+
+// A run that stopped because its batch filled up, not because it ran out, was stopped or failed.
+const batchFull = (s) => !!s && !lastRunWasTest && !s.test && !!s.limitReached && !s.fatal && !s.stopped;
+const nextStepWaiting = (s) => !s.fatal && !s.stopped && (s.test || batchFull(s));
 
 const secsUntil = (ts) => (ts ? Math.max(0, Math.round((ts - Date.now()) / 1000)) : "…");
 

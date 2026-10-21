@@ -149,9 +149,22 @@ globalThis.XEngine = (() => {
     return state.deleted + state.gone >= cfg.limit;
   }
 
-  // Archive mode: a fixed worklist of ids, deleted in order.
-  async function runArchive(cfg, report) {
-    const work = cfg.archiveItems.filter((it) => matchesFilters(it, cfg) && !state.processed.has(it.id));
+  // Newest first (the default) or oldest first, by id: ids are snowflakes that grow over time, so
+  // this works for likes too, which have no date of their own. One entry per id.
+  function orderItems(items, order) {
+    const byId = new Map();
+    for (const it of items) if (it && !byId.has(it.id)) byId.set(it.id, it);
+    const sign = order === "oldest" ? 1 : -1;
+    return [...byId.values()].sort((a, b) => {
+      const x = BigInt(a.id);
+      const y = BigInt(b.id);
+      return x === y ? 0 : x > y ? sign : -sign;
+    });
+  }
+
+  // A fixed worklist, deleted in order: the archive, or the whole profile read up front.
+  async function runList(items, cfg, report) {
+    const work = items.filter((it) => matchesFilters(it, cfg) && !state.processed.has(it.id));
     state.total = work.length;
     for (const item of work) {
       if (control.stopped || reachedLimit(cfg)) break;
@@ -162,6 +175,90 @@ globalThis.XEngine = (() => {
       report();
       await pace(cfg, report);
     }
+  }
+
+  // Archive mode: every item in the archive, in the chosen order.
+  async function runArchive(cfg, report) {
+    await runList(orderItems(cfg.archiveItems, cfg.order), cfg, report);
+  }
+
+  // Timeline mode, oldest first: the profile lists newest first, so read every page of it before
+  // deleting anything, then work from the bottom. This reaches only what the profile lists (about
+  // the latest 3,200 posts); the archive reaches the rest.
+  async function runTimelineOldest(cfg, report) {
+    const found = [];
+    state.scanning = true;
+    state.found = 0;
+    report();
+    for (const tl of TIMELINES) {
+      const kinds = tl.kinds.filter((k) => cfg.types[k]);
+      if (!kinds.length) continue;
+      const items = await scanTimeline(tl, kinds, found.length, report);
+      if (!items) break; // fatal, or stopped
+      found.push(...items);
+    }
+    state.scanning = false;
+    if (state.fatal || control.stopped) return;
+    await runList(orderItems(found, "oldest"), cfg, report);
+  }
+
+  // Reads one profile timeline to the end, keeping the user's own items of the given kinds.
+  async function scanTimeline(tl, kinds, base, report) {
+    const found = new Map();
+    let op = tl.op;
+    let cursor = null;
+    let emptyPages = 0;
+    while (!control.stopped) {
+      // Pause holds the reading too, not only the deleting.
+      while (control.paused && !control.stopped) {
+        state.paused = true;
+        report();
+        await sleep(500);
+      }
+      state.paused = false;
+      if (control.stopped) break;
+      let res;
+      try {
+        res = await XApi.profilePage(op, cursor);
+      } catch (e) {
+        if (tl.fallback && op !== tl.fallback) {
+          op = tl.fallback;
+          cursor = null;
+          continue;
+        }
+        state.fatal = "could not read the timeline (" + (e.message || e) + ")";
+        return null;
+      }
+      if (res.status === 429) {
+        await waitForReset(res.rate, report);
+        continue;
+      }
+      if (res.status !== 200) {
+        if (tl.fallback && op !== tl.fallback) {
+          op = tl.fallback;
+          cursor = null;
+          continue;
+        }
+        state.fatal = "the timeline request failed (HTTP " + res.status + ")";
+        return null;
+      }
+      let added = 0;
+      for (const it of res.items) {
+        if (kinds.includes(it.kind) && !found.has(it.id)) {
+          found.set(it.id, it);
+          added++;
+        }
+      }
+      state.found = base + found.size;
+      report();
+      // The end: no next page, or several pages in a row with nothing new.
+      if (!res.bottom || res.bottom === cursor) break;
+      emptyPages = added ? 0 : emptyPages + 1;
+      if (emptyPages >= 5) break;
+      cursor = res.bottom;
+      await sleep(rand(600, 1200));
+    }
+    return control.stopped ? null : [...found.values()];
   }
 
   // Timeline mode: drains each profile timeline from the top. Deleting changes the
@@ -253,6 +350,8 @@ globalThis.XEngine = (() => {
       fatal: state.fatal,
       running: state.running,
       historyErrors: state.historyErrors,
+      scanning: state.scanning,
+      found: state.found,
     };
   }
 
@@ -260,6 +359,7 @@ globalThis.XEngine = (() => {
     SPEEDS,
     // Exposed for tests; not used by the rest of the extension.
     _matchesFilters: matchesFilters,
+    _orderItems: orderItems,
     isRunning: () => !!(state && state.running),
     pause() {
       control.paused = true;
@@ -296,6 +396,8 @@ globalThis.XEngine = (() => {
         fatal: null,
         running: true,
         historyErrors: 0,
+        scanning: false,
+        found: 0,
       };
       if (!cfg.resume) await clearProcessed(me);
 
@@ -303,6 +405,7 @@ globalThis.XEngine = (() => {
       report();
       try {
         if (cfg.source === "archive") await runArchive(cfg, report);
+        else if (cfg.order === "oldest") await runTimelineOldest(cfg, report);
         else await runTimeline(cfg, report);
       } catch (e) {
         state.fatal = String(e && e.message ? e.message : e);
@@ -311,6 +414,9 @@ globalThis.XEngine = (() => {
       state.running = false;
       const final = snapshot();
       final.stopped = control.stopped;
+      // A batch that filled up: there is probably more, so the popup offers the next batch.
+      final.limitReached = Number.isFinite(cfg.limit) && reachedLimit(cfg);
+      final.test = !!cfg.test;
       report();
       return final;
     },
