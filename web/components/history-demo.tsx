@@ -8,23 +8,25 @@ import type { Dictionary, Locale } from "@/i18n/dictionaries";
 // browser tab: the page's header with the language flags, the title and privacy note, the count
 // with "Download JSON", "Download CSV" and "Clear history", the search, the type chips with their
 // counts, and the deleted posts drawn the way the page draws them (like posts on x.com). It is laid
-// out at the page's own width (PAGE_WIDTH) and zoomed to the frame's width, like a screenshot, so
-// the proportions match. The six
+// out at the page's own width (PAGE_WIDTH, its max-width in history.css) and centered in a wide
+// browser window, as in a real tab; in a narrower frame it is zoomed down to fit, like a
+// screenshot, so the proportions always match. The six
 // posts are the hero's fictional ones, as if just deleted. Nothing here is real data.
 
-const PAGE_WIDTH = 680;
+const PAGE_WIDTH = 720;
+const PAGE_HEIGHT = 820; // how much of the page shows, at its own size
 
 export function HistoryDemo({ dict, lang }: { dict: Dictionary; lang: Locale }) {
   const m = dict.history.mock;
   const handle = dict.demo.handle.replace(/^@/, "");
   const frameRef = useRef<HTMLDivElement>(null);
-  const [zoom, setZoom] = useState(0.68);
+  const [zoom, setZoom] = useState(1);
 
   // Follows the frame's width, so the page always fills it edge to edge.
   useEffect(() => {
     const el = frameRef.current;
     if (!el) return;
-    const fit = () => setZoom(el.clientWidth / PAGE_WIDTH);
+    const fit = () => setZoom(Math.min(1, el.clientWidth / PAGE_WIDTH));
     fit();
     const ro = new ResizeObserver(fit);
     ro.observe(el);
@@ -36,7 +38,7 @@ export function HistoryDemo({ dict, lang }: { dict: Dictionary; lang: Locale }) 
       role="img"
       aria-label={m.label}
       ref={frameRef}
-      className="relative w-full max-w-[560px] overflow-hidden rounded-2xl border border-line bg-bg shadow-2xl shadow-black/20 select-none"
+      className="relative w-full max-w-[960px] overflow-hidden rounded-2xl border border-line bg-bg shadow-2xl shadow-black/20 select-none"
     >
       {/* Browser toolbar: window buttons and the extension page's address. */}
       <div className="flex h-11 items-center gap-3 border-b border-line bg-mist px-3">
@@ -54,8 +56,11 @@ export function HistoryDemo({ dict, lang }: { dict: Dictionary; lang: Locale }) 
 
       {/* The page, at its own sizes, zoomed to the frame. The list fades out at the bottom, as a
           cropped screenshot would. */}
-      <div className="aspect-[6/7] overflow-hidden [mask-image:linear-gradient(to_bottom,black_80%,transparent)]">
-        <div className="px-5 pt-6 text-[14px] leading-[1.45] text-fg" style={{ width: PAGE_WIDTH, zoom }}>
+      <div
+        className="overflow-hidden [mask-image:linear-gradient(to_bottom,black_80%,transparent)]"
+        style={{ height: PAGE_HEIGHT * zoom }}
+      >
+        <div className="mx-auto px-5 pt-8 text-[14px] leading-[1.45] text-fg" style={{ width: PAGE_WIDTH, zoom }}>
           {/* Header: the mark, the name and tagline, and the language flags. */}
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">

@@ -135,31 +135,23 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
 
         {/* History and backups: the copy the extension keeps of what it deletes. */}
         <section id="history" className="scroll-mt-20 border-t border-line/60 py-20 md:py-28">
-          <div className="mx-auto grid max-w-6xl items-center gap-12 px-5 md:grid-cols-2 md:gap-16">
-            <div>
-              <h2 data-reveal className={sectionTitle}>
-                {d.history.title}
-              </h2>
-              <p data-reveal style={after(80)} className="mt-4 max-w-[32rem] text-[17px] leading-relaxed text-fg/60">
-                {d.history.text}
-              </p>
-              <ul className="mt-8 grid gap-5">
-                {d.history.items.map((item, i) => (
-                  <li key={i} data-reveal style={after(120 + i * 80)} className="flex gap-4">
-                    <span className="mt-0.5 grid size-10 shrink-0 place-items-center rounded-full bg-accent-soft text-accent">
-                      <HistoryIcon index={i} />
-                    </span>
-                    <div>
-                      <h3 className="font-semibold">{item.title}</h3>
-                      <p className="mt-1 text-sm leading-relaxed text-fg/60">{item.text}</p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div data-reveal style={after(160)} className="flex justify-center md:justify-end">
+          <div className="mx-auto max-w-6xl px-5">
+            <SectionHead title={d.history.title} text={d.history.text} />
+            {/* The page itself, large, then what it offers below it. */}
+            <div data-reveal className="flex justify-center">
               <HistoryDemo dict={d} lang={lang} />
             </div>
+            <ul className="mx-auto mt-12 grid max-w-[960px] gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {d.history.items.map((item, i) => (
+                <li key={i} data-reveal style={after(i * 80)} className={card}>
+                  <div className="mb-4 grid size-11 place-items-center rounded-full bg-accent-soft text-accent">
+                    <HistoryIcon index={i} />
+                  </div>
+                  <h3 className="font-semibold">{item.title}</h3>
+                  <p className="mt-1.5 text-sm leading-relaxed text-fg/60">{item.text}</p>
+                </li>
+              ))}
+            </ul>
           </div>
         </section>
 
@@ -417,7 +409,7 @@ const HISTORY_ICONS: React.ReactNode[] = [
 
 function HistoryIcon({ index }: { index: number }) {
   return (
-    <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       {HISTORY_ICONS[index]}
     </svg>
   );
