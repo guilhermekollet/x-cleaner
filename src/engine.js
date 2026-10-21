@@ -420,6 +420,10 @@ globalThis.XEngine = (() => {
       found: state.found,
       scanTotal: state.scanTotal,
       recent: state.recent,
+      // The batch: its size (null for everything at once), its order, and whether it is the test.
+      limit: Number.isFinite(state.limit) ? state.limit : null,
+      order: state.order,
+      test: state.test,
     };
   }
 
@@ -451,6 +455,9 @@ globalThis.XEngine = (() => {
         me,
         handle: cfg.handle || null,
         source: cfg.source,
+        limit: cfg.limit,
+        order: cfg.order === "oldest" ? "oldest" : "newest",
+        test: !!cfg.test,
         deleted: 0,
         gone: 0,
         failures: [],
