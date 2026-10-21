@@ -39,6 +39,7 @@ components/
   header-menu.tsx  Language switcher and light/dark toggle
   motion-bits.tsx  Reveal-on-scroll observer
   popup-demo.tsx   The animated mock of the extension popup in the hero
+  history-demo.tsx The still mock of the extension's history page, in the history section
 i18n/              Dictionaries (all copy) and the browser-language detector
 lib/document.ts    Fonts, the theme script, and the Pages base path
 ```

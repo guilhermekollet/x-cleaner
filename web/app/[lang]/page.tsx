@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getDictionary, hasLocale, locales, type Locale } from "@/i18n/dictionaries";
 import { Mark, GithubLogo } from "@/components/mark";
 import { HeaderMenu } from "@/components/header-menu";
+import { HistoryDemo } from "@/components/history-demo";
 import { RevealObserver } from "@/components/motion-bits";
 import { XTimelineDemo } from "@/components/x-timeline-demo";
 
@@ -128,6 +129,36 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
                 <WarnIcon />
                 <span>{d.reach.warn}</span>
               </p>
+            </div>
+          </div>
+        </section>
+
+        {/* History and backups: the copy the extension keeps of what it deletes. */}
+        <section id="history" className="scroll-mt-20 border-t border-line/60 py-20 md:py-28">
+          <div className="mx-auto grid max-w-6xl items-center gap-12 px-5 md:grid-cols-2 md:gap-16">
+            <div>
+              <h2 data-reveal className={sectionTitle}>
+                {d.history.title}
+              </h2>
+              <p data-reveal style={after(80)} className="mt-4 max-w-[32rem] text-[17px] leading-relaxed text-fg/60">
+                {d.history.text}
+              </p>
+              <ul className="mt-8 grid gap-5">
+                {d.history.items.map((item, i) => (
+                  <li key={i} data-reveal style={after(120 + i * 80)} className="flex gap-4">
+                    <span className="mt-0.5 grid size-10 shrink-0 place-items-center rounded-full bg-accent-soft text-accent">
+                      <HistoryIcon index={i} />
+                    </span>
+                    <div>
+                      <h3 className="font-semibold">{item.title}</h3>
+                      <p className="mt-1 text-sm leading-relaxed text-fg/60">{item.text}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div data-reveal style={after(160)} className="flex justify-center md:justify-end">
+              <HistoryDemo dict={d} />
             </div>
           </div>
         </section>
@@ -358,12 +389,39 @@ const WHAT_ICONS: React.ReactNode[] = [
     <path d="M9 3h6M10 3v6.2L4.9 17.9A2 2 0 0 0 6.6 21h10.8a2 2 0 0 0 1.7-3.1L14 9.2V3" />
     <path d="M7.4 15h9.2" />
   </>,
-  // Pause, resume, continue: pause bars and a play triangle.
+  // Batches, in your order: a stack of layers.
   <>
-    <path d="M4.5 6v12M8.5 6v12" />
-    <path d="M13 6.3v11.4a.6.6 0 0 0 .9.5l7.3-5.7a.6.6 0 0 0 0-1l-7.3-5.7a.6.6 0 0 0-.9.5z" />
+    <path d="M12 3.5 3.5 8 12 12.5 20.5 8z" />
+    <path d="M3.5 12 12 16.5 20.5 12" />
+    <path d="M3.5 16 12 20.5 20.5 16" />
   </>,
 ];
+
+// One icon per point of the history section, in the order of `history.items`.
+const HISTORY_ICONS: React.ReactNode[] = [
+  // Every deletion, recorded: a clock turning back.
+  <>
+    <path d="M3.5 12a8.5 8.5 0 1 0 2.5-6" />
+    <path d="M3.5 4v4h4M12 7.5V12l3 2" />
+  </>,
+  // Browse it like X: rows of posts.
+  <path d="M4 6h16M4 12h16M4 18h10" />,
+  // Download a backup: an arrow into a tray.
+  <path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14" />,
+  // Yours to keep or clear: a lock.
+  <>
+    <rect x="4.5" y="10.5" width="15" height="10" rx="2.5" />
+    <path d="M8 10.5V7a4 4 0 0 1 8 0v3.5" />
+  </>,
+];
+
+function HistoryIcon({ index }: { index: number }) {
+  return (
+    <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {HISTORY_ICONS[index]}
+    </svg>
+  );
+}
 
 // Icons for the limitations, in the order of `limits.items`; index -1 is the section's own mark.
 const LIMIT_ICONS: Record<number, React.ReactNode> = {

@@ -68,8 +68,8 @@ const en = {
       { title: "Two ways to find them", text: "Your profile timeline for recent posts with no file at all, or the archive X gives you to reach everything, including old posts." },
       { title: "Filters", text: "By type, by keyword, by date range, and a keep-list of IDs — so your pinned post, for one, stays put." },
       { title: "A speed you control", text: "Cautious, Normal or Fast. It reads X's own rate-limit signal and waits automatically when told to." },
-      { title: "A test run first", text: "Stop after 5 to confirm it removes the right things, then turn the test off and run the rest." },
-      { title: "Pause, resume, continue", text: "Stop anytime. Progress is saved, so an interrupted run picks up where it left off instead of starting over." },
+      { title: "An optional test first", text: "Delete 5, check your profile, then go on. A switch you can turn off once you trust it." },
+      { title: "Batches, in your order", text: "100 to 2,500 at a time, newest or oldest first, with a Next batch button. Pause or stop anytime; progress is saved." },
     ],
   },
   reach: {
@@ -79,6 +79,33 @@ const en = {
     archiveText:
       "Download an archive of your data from X (Settings → Your account → Download an archive of your data). It holds the ID of every post you ever made, so the extension can delete each one directly, no matter how old. The file is read in your browser — never uploaded — and it doubles as your backup.",
     warn: "Deletion is permanent. X has no trash and no undo. Download your archive first, and do a test run before deleting everything.",
+  },
+  history: {
+    title: "A copy of everything it deletes",
+    text: "Deletion on X is permanent, so X Cleaner keeps what it removes — the full text, media, links and dates — in your browser, ready to download.",
+    items: [
+      { title: "Every deletion, recorded", text: "The moment a post, reply, repost or like is gone, it's saved with its full text, media and links, and when it was posted and deleted." },
+      { title: "Browse it like X", text: "Open History from the popup: newest first, drawn like posts on X, with search, a filter by type and the total." },
+      { title: "Download a backup", text: "JSON for a faithful copy, CSV for a spreadsheet. The files are made on your computer; nothing is uploaded." },
+      { title: "Yours to keep or clear", text: "Kept per account in the extension's local storage, only in this browser. Clear it whenever you want." },
+    ],
+    mock: {
+      label: "Illustration: the X Cleaner history page, listing deleted posts with buttons to download them as JSON or CSV",
+      address: "X Cleaner · History",
+      page: "Deletion history",
+      privacy: "Kept only in this browser. Nothing is uploaded.",
+      count: "1,248 deleted",
+      json: "JSON",
+      csv: "CSV",
+      search: "Search the text, a link or an ID",
+      chips: ["All", "Posts", "Replies", "Reposts"],
+      replyingTo: "Replying to",
+      items: [
+        { date: "Mar 4, 2019", text: "reminder that my 2019 posts do not represent me anymore", replyTo: "", deleted: "Deleted Oct 21, 2026, 12:15 AM" },
+        { date: "Jul 18, 2018", text: "@friend agreed, but only after coffee ☕", replyTo: "@friend", deleted: "Deleted Oct 21, 2026, 12:15 AM" },
+        { date: "Jan 4, 2018", text: "thread on why my old takes aged badly 🧵", replyTo: "", deleted: "Deleted Oct 21, 2026, 12:14 AM" },
+      ],
+    },
   },
   privacy: {
     title: "Private by design",
@@ -195,8 +222,8 @@ const pt: typeof en = {
       { title: "Dois jeitos de localizar", text: "A timeline do seu perfil para os posts recentes, sem arquivo nenhum, ou o arquivo que o X fornece para alcançar tudo, inclusive os antigos." },
       { title: "Filtros", text: "Por tipo, por palavra-chave, por período, e uma lista de IDs a manter — para o post fixado, por exemplo, ficar onde está." },
       { title: "Um ritmo que você controla", text: "Cauteloso, Normal ou Rápido. Ele lê o próprio limite do X e espera sozinho quando é avisado." },
-      { title: "Primeiro um teste", text: "Para depois de 5 para você conferir se remove o certo; aí é só desligar o teste e rodar o resto." },
-      { title: "Pausar, retomar, continuar", text: "Pare quando quiser. O progresso fica salvo, então uma rodada interrompida continua de onde parou." },
+      { title: "Um teste opcional antes", text: "Apague 5, confira o perfil e siga. Uma chave que você desliga quando já confia." },
+      { title: "Lotes, na sua ordem", text: "De 100 a 2.500 por vez, dos mais recentes ou dos mais antigos, com um botão de próximo lote. Pause ou pare quando quiser; o progresso fica salvo." },
     ],
   },
   reach: {
@@ -206,6 +233,33 @@ const pt: typeof en = {
     archiveText:
       "Baixe um arquivo dos seus dados no X (Configurações → Sua conta → Baixar um arquivo dos seus dados). Ele traz o ID de todos os posts que você já fez, então a extensão apaga cada um direto, por mais antigo que seja. O arquivo é lido no seu navegador — nunca enviado — e ainda serve de backup.",
     warn: "A exclusão é permanente. O X não tem lixeira nem desfazer. Baixe o arquivo antes e faça um teste antes de apagar tudo.",
+  },
+  history: {
+    title: "Uma cópia de tudo que ele apaga",
+    text: "Apagar no X é permanente, então o X Cleaner guarda o que remove — texto completo, mídias, links e datas — no seu navegador, pronto para baixar.",
+    items: [
+      { title: "Cada exclusão, registrada", text: "Assim que um post, resposta, repost ou curtida some, ele fica salvo com o texto completo, mídias e links, e quando foi postado e apagado." },
+      { title: "Navegue como no X", text: "Abra o Histórico pelo popup: mais recentes primeiro, desenhado como os posts do X, com busca, filtro por tipo e o total." },
+      { title: "Baixe um backup", text: "JSON para uma cópia fiel, CSV para planilha. Os arquivos são gerados no seu computador; nada é enviado." },
+      { title: "Seu, para guardar ou limpar", text: "Fica por conta no armazenamento local da extensão, só neste navegador. Limpe quando quiser." },
+    ],
+    mock: {
+      label: "Ilustração: a página de histórico do X Cleaner, com os posts apagados e botões para baixá-los em JSON ou CSV",
+      address: "X Cleaner · Histórico",
+      page: "Histórico de exclusões",
+      privacy: "Fica só neste navegador. Nada é enviado.",
+      count: "1.248 apagados",
+      json: "JSON",
+      csv: "CSV",
+      search: "Busque no texto, num link ou num ID",
+      chips: ["Todos", "Posts", "Respostas", "Reposts"],
+      replyingTo: "Em resposta a",
+      items: [
+        { date: "4 de mar. de 2019", text: "lembrando que meus posts de 2019 não me representam mais", replyTo: "", deleted: "Apagado em 21 de out. de 2026, 00:15" },
+        { date: "18 de jul. de 2018", text: "@amigo concordo, mas só depois do café ☕", replyTo: "@amigo", deleted: "Apagado em 21 de out. de 2026, 00:15" },
+        { date: "4 de jan. de 2018", text: "fio sobre por que minhas opiniões antigas envelheceram mal 🧵", replyTo: "", deleted: "Apagado em 21 de out. de 2026, 00:14" },
+      ],
+    },
   },
   privacy: {
     title: "Privado por princípio",
