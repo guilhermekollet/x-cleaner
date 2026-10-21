@@ -101,7 +101,7 @@ test("orderItems sorts by id, newest or oldest first, one entry per id", () => {
 });
 
 // A fresh in-memory chrome.storage.local and an XApi stub that records what it deletes.
-function stubs({ pages = [] } = {}) {
+function stubs({ pages = [], postCount = null, onRead = null } = {}) {
   const data = {};
   globalThis.chrome = {
     storage: {
@@ -130,13 +130,19 @@ function stubs({ pages = [] } = {}) {
     // Pages of the profile, newest first, chained by cursor.
     profilePage: async (op, cursor) => {
       reads.push([op, cursor]);
+      if (onRead) onRead(reads.length);
       const i = cursor ? Number(cursor) : 0;
       const page = pages[i];
-      if (!page) return { status: 200, items: [], bottom: null };
-      return { status: 200, items: page.filter((it) => !deleted.includes(it.id)), bottom: i + 1 < pages.length ? String(i + 1) : null };
+      if (!page) return { status: 200, items: [], bottom: null, postCount };
+      return {
+        status: 200,
+        items: page.filter((it) => !deleted.includes(it.id)),
+        bottom: i + 1 < pages.length ? String(i + 1) : null,
+        postCount,
+      };
     },
   };
-  return { deleted, reads };
+  return { deleted, reads, data };
 }
 
 const fast = { minDelay: 0, maxDelay: 0, batchSize: 1000, batchPause: 0 };
@@ -178,4 +184,56 @@ test("a run without a batch limit never reports a full batch", async () => {
   stubs();
   const final = await XEngine.start({ ...base, source: "archive", archiveItems: [post("1")], speed: fast, limit: Infinity, resume: false });
   assert.equal(final.limitReached, false);
+});
+
+const timelineCfg = (over) => ({
+  ...base,
+  types: { post: true, reply: false, repost: false, like: false },
+  source: "timeline",
+  speed: fast,
+  order: "oldest",
+  resume: false,
+  ...over,
+});
+
+test("the profile read is kept: the next batch deletes at once, without reading again", async () => {
+  const pages = [["90", "80"].map(post), ["70", "60"].map(post)];
+  const { deleted, reads, data } = stubs({ pages, postCount: 4 });
+  const progress = [];
+  await XEngine.start(timelineCfg({ limit: 2 }), (s) => progress.push(s));
+  assert.deepEqual(deleted, ["60", "70"]);
+  assert.equal(reads.length, 2);
+  assert.ok(progress.some((s) => s.scanning && s.scanTotal === 4));
+  // The deleted ones are pruned from the saved read.
+  assert.deepEqual(data["xcleaner.scan.77"].items.map((i) => i.id).sort(), ["80", "90"]);
+  assert.deepEqual(data["xcleaner.scanmeta.77"].done, ["UserTweets"]);
+
+  await XEngine.start(timelineCfg({ limit: 2, resume: true }));
+  assert.deepEqual(deleted, ["60", "70", "80", "90"]);
+  assert.equal(reads.length, 2); // no new reads
+});
+
+test("a read that was stopped picks up from where it stopped", async () => {
+  const pages = [["90", "80"].map(post), ["70", "60"].map(post), ["50"].map(post)];
+  const { deleted, reads } = stubs({ pages, onRead: (n) => n === 2 && XEngine.stop() });
+  const first = await XEngine.start(timelineCfg({ limit: 10 }));
+  assert.equal(first.stopped, true);
+  assert.equal(first.scanning, true); // stopped during the read
+  assert.deepEqual(deleted, []);
+
+  await XEngine.start(timelineCfg({ limit: 10 }));
+  // The page that arrived as it stopped is kept, so the next read starts at the page after it.
+  assert.deepEqual(reads.map(([, c]) => c), [null, "1", "2"]);
+  assert.deepEqual(deleted, ["50", "60", "70", "80", "90"]);
+});
+
+test("a finished read with nothing left is read again, for newer posts", async () => {
+  const pages = [["20", "10"].map(post)];
+  const { deleted, reads } = stubs({ pages });
+  await XEngine.start(timelineCfg({ limit: 10 }));
+  assert.deepEqual(deleted, ["10", "20"]);
+  pages[0] = ["30"].map(post); // a new post since
+  await XEngine.start(timelineCfg({ limit: 10 }));
+  assert.deepEqual(deleted, ["10", "20", "30"]);
+  assert.equal(reads.length, 2);
 });

@@ -49,7 +49,10 @@ you are signed in to. Nothing is uploaded, and you never hand your account to a 
 - **Batches and order**: delete in batches of 100 to 2,500 (or everything at once); a batch stops
   when it fills and offers the next one, which repeats the same settings and skips what is done.
   Delete **newest first** or **oldest first**. Oldest first without the archive reads your whole
-  profile before deleting, so it reaches only what the profile lists (about 3,200 posts). Pace,
+  profile before deleting, so it reaches only what the profile lists (about 3,200 posts). X serves
+  about 20 posts a page and limits reads per 15 minutes, so that first read can take a while and
+  may wait for X; the popup shows how far it got and how long a wait lasts. The read is kept for a
+  day: a stopped read picks up where it stopped, and later batches start deleting at once. Pace,
   batch size and order are remembered.
 - **An optional test run** that stops after 5, so you can confirm it deletes the right things
   first: a switch beside the confirmation, on until a test has passed once.

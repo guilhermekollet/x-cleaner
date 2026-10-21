@@ -91,6 +91,7 @@ async function init() {
   profilePath = pong.profile || null;
   account = pong.account || null;
   refreshHistoryCount();
+  await refreshScanMeta();
   if (!signedIn) return setAccount("out", "status.signedOut");
   setAccount("in", "status.ready");
   refreshStart();
@@ -201,6 +202,24 @@ for (const id of ["batch", "order"]) $(id).addEventListener("change", () => {
 });
 for (const r of document.querySelectorAll('input[name="speed"]')) r.addEventListener("change", savePrefs);
 
+// Oldest first without the archive reads the whole profile first. A read from the last day is kept
+// (see engine.js); when it covers the chosen types, the Recent card says the run starts at once.
+let scanMeta = null;
+async function refreshScanMeta() {
+  if (!account) return;
+  const key = "xcleaner.scanmeta." + account;
+  scanMeta = (await chrome.storage.local.get(key).catch(() => ({})))[key] || null;
+  refreshStart();
+}
+function scanReady() {
+  if (!scanMeta || Date.now() - scanMeta.at > 24 * 60 * 60 * 1000 || !scanMeta.count) return false;
+  const types = selectedTypes();
+  const needed = [];
+  if (types.post || types.repost) needed.push("UserTweets");
+  if (types.reply) needed.push("UserRepliesTimeline");
+  return needed.every((op) => scanMeta.done.includes(op));
+}
+
 // The main button says exactly what a click will do.
 function startLabel() {
   if (isTest()) return t("start.test");
@@ -229,7 +248,7 @@ function refreshStart() {
   $("likeHint").classList.toggle("hidden", !($("t-like").checked && !archive));
   const oldest = orderValue() === "oldest";
   // Oldest first without the archive reaches only what the profile lists; the Recent card says so.
-  const hintKey = oldest ? "source.timelineHintOldest" : "source.timelineHint";
+  const hintKey = !oldest ? "source.timelineHint" : scanReady() ? "source.timelineHintReady" : "source.timelineHintOldest";
   $("timelineHint").dataset.i18n = hintKey;
   $("timelineHint").textContent = t(hintKey);
   document.querySelector(".order-newest").classList.toggle("hidden", oldest);
@@ -351,6 +370,7 @@ function exitRunning(final) {
   $("continueFull").classList.toggle("hidden", !testOk);
   if (testOk) chrome.storage.local.set({ [TESTED_KEY]: true }).catch(() => {});
   refreshHistoryCount();
+  refreshScanMeta();
 }
 
 async function poll() {
@@ -373,6 +393,10 @@ function render(s, done) {
   // Progress counts this run only, so a resumed run starts from zero against what is left.
   const acted = (s.deleted || 0) + (s.gone || 0) + (s.failures || 0);
   const hasTotal = s.total > 0;
+  // While reading the profile, progress is against its post count (X lists at most ~3,200).
+  const scanOf = s.scanTotal ? Math.min(s.scanTotal, PROFILE_LIMIT) : 0;
+  const scanKnown = s.scanning && scanOf > 0 && (s.found || 0) <= scanOf;
+  const read = fmt.format(s.found || 0);
 
   let msg;
   if (s.fatal) msg = t("run.stoppedWith", { reason: friendlyFatal(s.fatal) });
@@ -380,11 +404,14 @@ function render(s, done) {
   else if (done && batchFull(s)) {
     msg = t("run.batchDone", { n: fmt.format((s.deleted || 0) + (s.gone || 0)) });
     if (hasTotal && s.total > acted) msg += " " + t("run.left", { n: fmt.format(s.total - acted) });
-  } else if (s.scanning) msg = t("run.scanning", { n: fmt.format(s.found || 0) });
+  } else if (done && s.stopped && s.scanning) msg = t("run.stoppedScan", { n: read });
   else if (done) msg = s.stopped ? t("run.stopped") : t("run.done");
-  else if (s.waiting || s.waitUntil) msg = t("run.limited", { s: secsUntil(s.waitUntil) });
-  else if (s.batchUntil) msg = t("run.batch", { s: secsUntil(s.batchUntil) });
+  // A wait for X comes first: it explains why nothing moves, and for how long.
+  else if (s.waitUntil || s.waiting)
+    msg = s.scanning ? t("run.scanLimited", { time: waitText(s.waitUntil), n: read }) : t("run.limited", { time: waitText(s.waitUntil) });
+  else if (s.batchUntil) msg = t("run.batch", { time: waitText(s.batchUntil) });
   else if (s.paused) msg = t("run.paused");
+  else if (s.scanning) msg = scanKnown ? t("run.scanningOf", { n: read, total: fmt.format(scanOf) }) : t("run.scanning", { n: read });
   else msg = hasTotal ? `${t("run.working")} ${t("run.progress", { done: fmt.format(acted), total: fmt.format(s.total) })}` : t("run.working");
   // The history is the only copy of what was deleted; say so if any of it couldn't be saved.
   if (s.historyErrors) msg += " " + t("run.historyErrors", { n: fmt.format(s.historyErrors) });
@@ -394,15 +421,26 @@ function render(s, done) {
   const bar = $("p-bar");
   // A full batch isn't the end: the bar keeps showing how much of the total is done.
   bar.classList.toggle("done", !!done && !s.fatal && !s.stopped && !batchFull(s));
-  bar.classList.toggle("indeterminate", !done && !hasTotal);
-  bar.firstElementChild.style.width = hasTotal ? `${Math.min(100, (acted / s.total) * 100)}%` : "";
+  bar.classList.toggle("indeterminate", !done && !hasTotal && !scanKnown);
+  bar.firstElementChild.style.width = scanKnown
+    ? `${Math.min(98, ((s.found || 0) / scanOf) * 100)}%`
+    : hasTotal
+      ? `${Math.min(100, (acted / s.total) * 100)}%`
+      : "";
 }
+
+const PROFILE_LIMIT = 3200; // about how far back X lists a profile
 
 // A run that stopped because its batch filled up, not because it ran out, was stopped or failed.
 const batchFull = (s) => !!s && !lastRunWasTest && !s.test && !!s.limitReached && !s.fatal && !s.stopped;
 const nextStepWaiting = (s) => !s.fatal && !s.stopped && (s.test || batchFull(s));
 
-const secsUntil = (ts) => (ts ? Math.max(0, Math.round((ts - Date.now()) / 1000)) : "…");
+// "45s" for a short wait, "~13 min" for a long one (X's limits reset every 15 minutes).
+function waitText(ts) {
+  if (!ts) return "…";
+  const secs = Math.max(0, Math.round((ts - Date.now()) / 1000));
+  return secs < 90 ? t("time.secs", { n: secs }) : t("time.mins", { n: Math.ceil(secs / 60) });
+}
 
 function friendlyFatal(f) {
   if (/404|endpoint/.test(f)) return t("run.fatalApi");

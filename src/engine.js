@@ -182,32 +182,73 @@ globalThis.XEngine = (() => {
     await runList(orderItems(cfg.archiveItems, cfg.order), cfg, report);
   }
 
-  // Timeline mode, oldest first: the profile lists newest first, so read every page of it before
-  // deleting anything, then work from the bottom. This reaches only what the profile lists (about
-  // the latest 3,200 posts); the archive reaches the rest.
-  async function runTimelineOldest(cfg, report) {
-    const found = [];
-    state.scanning = true;
-    state.found = 0;
-    report();
-    for (const tl of TIMELINES) {
-      const kinds = tl.kinds.filter((k) => cfg.types[k]);
-      if (!kinds.length) continue;
-      const items = await scanTimeline(tl, kinds, found.length, report);
-      if (!items) break; // fatal, or stopped
-      found.push(...items);
+  // --- Timeline mode, oldest first --------------------------------------------------------
+  // The profile lists newest first, so finding the oldest means reading all of it before deleting
+  // anything. X serves about 20 posts a page and limits how many pages it serves per 15 minutes,
+  // so on a large profile that read takes a while and may wait for X. What has been read is kept
+  // per account for a day: a stopped read picks up where it left off, and later batches start
+  // deleting at once. Deleted items are pruned from it as runs go. This reaches only what the
+  // profile lists (about the latest 3,200 posts); the archive reaches the rest.
+  const SCAN_TTL = 24 * 60 * 60 * 1000;
+  const scanKey = (me) => "xcleaner.scan." + me;
+  const scanMetaKey = (me) => "xcleaner.scanmeta." + me;
+  const freshScan = () => ({ v: 1, at: Date.now(), postCount: null, timelines: {}, items: [] });
+
+  async function loadScan(me) {
+    try {
+      const scan = (await chrome.storage.local.get(scanKey(me)))[scanKey(me)];
+      if (scan && scan.v === 1 && Date.now() - scan.at < SCAN_TTL) return scan;
+    } catch {}
+    return freshScan();
+  }
+  // The read, and a small summary of it the popup reads to say whether a run starts at once.
+  async function saveScan(me, scan) {
+    const done = Object.keys(scan.timelines).filter((k) => scan.timelines[k].done);
+    try {
+      await chrome.storage.local.set({
+        [scanKey(me)]: scan,
+        [scanMetaKey(me)]: { at: scan.at, done, count: scan.items.length, postCount: scan.postCount },
+      });
+    } catch {
+      /* without storage the read is simply not kept */
     }
-    state.scanning = false;
-    if (state.fatal || control.stopped) return;
-    await runList(orderItems(found, "oldest"), cfg, report);
   }
 
-  // Reads one profile timeline to the end, keeping the user's own items of the given kinds.
-  async function scanTimeline(tl, kinds, base, report) {
-    const found = new Map();
-    let op = tl.op;
-    let cursor = null;
+  async function runTimelineOldest(cfg, report) {
+    const needed = TIMELINES.filter((tl) => tl.kinds.some((k) => cfg.types[k]));
+    let scan = await loadScan(state.me);
+    const ready = () => needed.every((tl) => scan.timelines[tl.op]?.done);
+    // A finished read with nothing left of the chosen kinds is read again, for newer posts.
+    if (ready() && !scan.items.some((it) => cfg.types[it.kind] && !state.processed.has(it.id))) scan = freshScan();
+    if (!ready()) {
+      state.scanning = true;
+      state.found = scan.items.length;
+      state.scanTotal = scan.postCount;
+      report();
+      for (const tl of needed) {
+        if (scan.timelines[tl.op]?.done) continue;
+        const finished = await scanTimeline(tl, scan, report);
+        await saveScan(state.me, scan);
+        if (!finished) return; // stopped or failed: what was read is kept for next time
+      }
+      state.scanning = false;
+    }
+    try {
+      await runList(orderItems(scan.items, "oldest"), cfg, report);
+    } finally {
+      scan.items = scan.items.filter((it) => !state.processed.has(it.id));
+      await saveScan(state.me, scan);
+    }
+  }
+
+  // Reads one profile timeline to its end, from where an earlier read stopped, adding the user's
+  // own items of that timeline's kinds to the scan. Returns false if stopped or failed.
+  async function scanTimeline(tl, scan, report) {
+    const pos = scan.timelines[tl.op] || (scan.timelines[tl.op] = { op: tl.op, cursor: null, done: false });
+    const known = new Set(scan.items.map((it) => it.id));
     let emptyPages = 0;
+    let pages = 0;
+    let restarted = false;
     while (!control.stopped) {
       // Pause holds the reading too, not only the deleting.
       while (control.paused && !control.stopped) {
@@ -219,46 +260,53 @@ globalThis.XEngine = (() => {
       if (control.stopped) break;
       let res;
       try {
-        res = await XApi.profilePage(op, cursor);
+        res = await XApi.profilePage(pos.op, pos.cursor);
       } catch (e) {
-        if (tl.fallback && op !== tl.fallback) {
-          op = tl.fallback;
-          cursor = null;
-          continue;
-        }
-        state.fatal = "could not read the timeline (" + (e.message || e) + ")";
-        return null;
+        res = { status: 0, error: e };
       }
       if (res.status === 429) {
         await waitForReset(res.rate, report);
         continue;
       }
       if (res.status !== 200) {
-        if (tl.fallback && op !== tl.fallback) {
-          op = tl.fallback;
-          cursor = null;
+        // A saved cursor may have expired: read again from the top once (what is known is kept).
+        if (pos.cursor && !restarted) {
+          restarted = true;
+          pos.cursor = null;
           continue;
         }
-        state.fatal = "the timeline request failed (HTTP " + res.status + ")";
-        return null;
+        if (tl.fallback && pos.op !== tl.fallback) {
+          pos.op = tl.fallback;
+          pos.cursor = null;
+          continue;
+        }
+        state.fatal = res.error
+          ? "could not read the timeline (" + (res.error.message || res.error) + ")"
+          : "the timeline request failed (HTTP " + res.status + ")";
+        return false;
       }
+      if (res.postCount) scan.postCount = state.scanTotal = res.postCount;
       let added = 0;
       for (const it of res.items) {
-        if (kinds.includes(it.kind) && !found.has(it.id)) {
-          found.set(it.id, it);
+        if (tl.kinds.includes(it.kind) && !known.has(it.id)) {
+          known.add(it.id);
+          scan.items.push(it);
           added++;
         }
       }
-      state.found = base + found.size;
+      state.found = scan.items.length;
       report();
       // The end: no next page, or several pages in a row with nothing new.
-      if (!res.bottom || res.bottom === cursor) break;
       emptyPages = added ? 0 : emptyPages + 1;
-      if (emptyPages >= 5) break;
-      cursor = res.bottom;
+      if (!res.bottom || res.bottom === pos.cursor || emptyPages >= 5) {
+        pos.done = true;
+        return true;
+      }
+      pos.cursor = res.bottom;
+      if (++pages % 5 === 0) await saveScan(state.me, scan);
       await sleep(rand(600, 1200));
     }
-    return control.stopped ? null : [...found.values()];
+    return false;
   }
 
   // Timeline mode: drains each profile timeline from the top. Deleting changes the
@@ -352,6 +400,7 @@ globalThis.XEngine = (() => {
       historyErrors: state.historyErrors,
       scanning: state.scanning,
       found: state.found,
+      scanTotal: state.scanTotal,
     };
   }
 
@@ -398,6 +447,7 @@ globalThis.XEngine = (() => {
         historyErrors: 0,
         scanning: false,
         found: 0,
+        scanTotal: null,
       };
       if (!cfg.resume) await clearProcessed(me);
 
