@@ -478,7 +478,7 @@ function WarnIcon() {
   );
 }
 // GitHub's star button: the label, then the count once the repository has stars. `compact` is the
-// header's smaller version, which keeps only the icons on narrow screens.
+// header's smaller version: the GitHub mark and the count, without the star and the label.
 function StarButton({ label, stars, lang, compact }: { label: string; stars: number; lang: Locale; compact?: boolean }) {
   return (
     <a
@@ -488,12 +488,15 @@ function StarButton({ label, stars, lang, compact }: { label: string; stars: num
       aria-label={`GitHub — ${label}`}
       className={`press inline-flex ${compact ? "h-10" : "h-11"} items-stretch overflow-hidden rounded-full border border-line text-sm font-semibold whitespace-nowrap`}
     >
-      <span className={`flex items-center gap-2 ${compact ? "px-3 sm:px-4" : "px-4"}`}>
+      <span className={`flex items-center gap-2 ${compact ? "px-3.5" : "px-4"}`}>
         <GithubLogo className="size-4" />
-        <span className={compact ? "hidden sm:inline" : undefined}>
-          <StarIcon />
-        </span>
-        <span className={compact ? "hidden sm:inline" : undefined}>{label}</span>
+        {/* The header's compact version is just the GitHub mark and the count. */}
+        {compact ? null : (
+          <>
+            <StarIcon />
+            <span>{label}</span>
+          </>
+        )}
       </span>
       {stars > 0 ? (
         <span className="flex items-center border-l border-line bg-fg/[0.04] px-3.5 tabular-nums">
