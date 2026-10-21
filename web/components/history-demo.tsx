@@ -224,7 +224,7 @@ function Icon({ d, className, width = 1.8 }: { d: string; className?: string; wi
 }
 
 // The page's round language flags: the chosen one in color, the other in grey.
-function Flag({ lang, on }: { lang: Locale; on: boolean }) {
+export function Flag({ lang, on }: { lang: Locale; on: boolean }) {
   const look = `size-[18px] rounded-full shadow-[0_0_0_0.5px_var(--line)] ${on ? "" : "opacity-45 grayscale"}`;
   if (lang === "en")
     return (

@@ -104,9 +104,9 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
         <section id="what" className="scroll-mt-20 border-t border-line/60 py-20 md:py-28">
           <div className="mx-auto max-w-6xl px-5">
             <SectionHead title={d.what.title} text={d.what.text} />
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-3">
               {d.what.items.map((item, i) => (
-                <div key={i} data-reveal style={after((i % 3) * 80)} className={card}>
+                <div key={i} data-reveal style={after(i * 80)} className={card}>
                   <div className="mb-4 text-accent">
                     <WhatIcon index={i} />
                   </div>
@@ -357,34 +357,20 @@ const SECTION_ICON = "size-8";
 // One icon per "What it does" card, in the order of `what.items` in the dictionary. Thin outlines
 // in the accent color, like the rest of the site's icons.
 const WHAT_ICONS: React.ReactNode[] = [
-  // Posts, replies and reposts: a trash can.
+  // Everything you posted: a trash can.
   <>
     <path d="M4 7h16" />
     <path d="M9 7V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V7" />
     <path d="M5.8 7l.9 12.2A2 2 0 0 0 8.7 21h6.6a2 2 0 0 0 2-1.8L18.2 7" />
     <path d="M10 11v6M14 11v6" />
   </>,
-  // Two ways to find them: a magnifier over a list.
+  // Recent, or all of it: a magnifier over a list.
   <>
     <path d="M4 6h11M4 10h7M4 14h4" />
     <circle cx="15" cy="15" r="4" />
     <path d="M18 18l3 3" />
   </>,
-  // Filters: a funnel.
-  <path d="M3.5 5h17l-6.5 7.6V19l-4 2v-8.4z" />,
-  // A speed you control: a gauge with its needle.
-  <>
-    <path d="M4.3 17.5a9 9 0 1 1 15.4 0" />
-    <path d="M12 14l4.2-4.7" />
-    <circle cx="12" cy="14" r="1.4" />
-    <path d="M6.5 11.2l1.2.6M12 6.5V8M17.5 11.2l-1.2.6" />
-  </>,
-  // A test run first: a lab flask.
-  <>
-    <path d="M9 3h6M10 3v6.2L4.9 17.9A2 2 0 0 0 6.6 21h10.8a2 2 0 0 0 1.7-3.1L14 9.2V3" />
-    <path d="M7.4 15h9.2" />
-  </>,
-  // Batches, in your order: a stack of layers.
+  // In batches, at a safe pace: a stack of layers.
   <>
     <path d="M12 3.5 3.5 8 12 12.5 20.5 8z" />
     <path d="M3.5 12 12 16.5 20.5 12" />

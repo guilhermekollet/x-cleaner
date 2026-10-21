@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Mark } from "./mark";
+import { PopupMock, POPUP_WIDTH } from "./popup-mock";
 import type { Dictionary, Locale } from "@/i18n/dictionaries";
 
 // A looping, illustrative mock: a browser window on an X profile, in the shape of x.com's own
@@ -13,6 +14,7 @@ import type { Dictionary, Locale } from "@/i18n/dictionaries";
 type Popup = "closed" | "ready" | "running" | "done";
 
 const START_COUNT = 2481;
+const POPUP_ZOOM = 0.64; // the popup's real 460px, shrunk to sit inside the 460px window
 
 export function XTimelineDemo({ dict, lang }: { dict: Dictionary; lang: Locale }) {
   const d = dict.demo;
@@ -64,7 +66,7 @@ export function XTimelineDemo({ dict, lang }: { dict: Dictionary; lang: Locale }
         if (!alive) return;
         await click();
         setPopup("ready");
-        await wait(500);
+        await wait(1400); // time to see the popup before the click
 
         // Press Start.
         pointAt(startRef.current);
@@ -214,61 +216,24 @@ export function XTimelineDemo({ dict, lang }: { dict: Dictionary; lang: Locale }
         {start >= total ? <p className="py-16 text-center text-[15px] font-bold text-muted">{e.empty}</p> : null}
       </div>
 
-      {/* The extension's popup, dropped from the toolbar icon like Chrome opens it. */}
+      {/* The extension's popup, dropped from the toolbar icon like Chrome opens it: the real popup's
+          layout, zoomed to fit the window. */}
       <div
-        className={`absolute top-[46px] right-2 z-20 w-[248px] origin-top-right rounded-xl border border-[#2a2a2a] bg-[#0f0f0f] p-3 text-[13px] text-[#f5f5f5] shadow-2xl shadow-black/40 transition-[opacity,scale] duration-200 ${
+        className={`absolute top-[46px] right-2 z-20 origin-top-right overflow-hidden rounded-xl border border-line bg-bg shadow-2xl shadow-black/40 transition-[opacity,scale] duration-200 ${
           popup === "closed" ? "pointer-events-none scale-95 opacity-0" : "scale-100 opacity-100"
         }`}
+        style={{ width: POPUP_WIDTH * POPUP_ZOOM }}
       >
-        <div className="flex items-center gap-2">
-          <Mark className="size-4 text-[#f5f5f5]" />
-          <span className="font-bold">{e.open}</span>
+        <div style={{ zoom: POPUP_ZOOM }}>
+          <PopupMock
+            dict={dict}
+            lang={lang}
+            state={running ? "running" : finished ? "done" : "setup"}
+            deleted={deleted}
+            pressing={hoverStart}
+            startRef={startRef}
+          />
         </div>
-
-        {popup === "ready" ? (
-          <>
-            <p className="mt-3 mb-1.5 font-semibold">{e.what}</p>
-            <div className="flex flex-wrap gap-x-3 gap-y-1">
-              {e.types.map((t) => (
-                <span key={t} className="inline-flex items-center gap-1.5">
-                  <span className="grid size-3.5 place-items-center rounded-[3px] bg-accent">
-                    <Icon d="M5 12l5 5 9-10" className="size-2.5 text-white" />
-                  </span>
-                  {t}
-                </span>
-              ))}
-            </div>
-            <div className="mt-3 flex items-center justify-between">
-              <span className="text-[#9a9a9a]">{e.speed}</span>
-              <span className="rounded-md border border-[#2a2a2a] bg-[#0c0c0c] px-2 py-0.5">{e.speedValue}</span>
-            </div>
-            <span
-              ref={startRef}
-              className={`mt-3 flex h-9 items-center justify-center rounded-lg bg-[#f4212e] font-semibold text-white transition-[filter] ${
-                hoverStart ? "brightness-110" : ""
-              }`}
-            >
-              {e.start}
-            </span>
-          </>
-        ) : (
-          <>
-            <div className="mt-3 flex justify-between">
-              <Counter n={deleted} label={e.deleted} className="text-[#7ee081]" />
-              <Counter n={0} label={e.gone} />
-              <Counter n={0} label={e.failures} className="text-[#f4212e]" />
-            </div>
-            <p className="mt-2 text-[12px] text-[#9a9a9a]">
-              {finished ? e.done : `${e.working} ${Math.min(deleted + 1, total)} ${e.of} ${total}…`}
-            </p>
-            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#2a2a2a]">
-              <div
-                className="h-full rounded-full bg-[#b8a4f8] transition-[width] duration-500"
-                style={{ width: `${(deleted / total) * 100}%` }}
-              />
-            </div>
-          </>
-        )}
       </div>
 
       {/* The cursor. Its tip sits at (x, y). */}
@@ -311,15 +276,6 @@ function Action({ d, n }: { d: string; n: string }) {
     <span className="flex items-center gap-1">
       <Icon d={d} className="size-[18px]" />
       <span className="min-w-[1ch] tabular-nums">{n}</span>
-    </span>
-  );
-}
-
-function Counter({ n, label, className = "" }: { n: number; label: string; className?: string }) {
-  return (
-    <span className="flex flex-col items-start">
-      <b className={`text-lg leading-6 tabular-nums ${className}`}>{n}</b>
-      <span className="text-[11px] text-[#9a9a9a]">{label}</span>
     </span>
   );
 }

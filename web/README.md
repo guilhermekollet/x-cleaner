@@ -40,6 +40,7 @@ components/
   motion-bits.tsx  Reveal-on-scroll observer
   popup-demo.tsx   The animated mock of the extension popup in the hero
   history-demo.tsx The still mock of the extension's history page, in the history section
+  popup-mock.tsx   The extension's popup, drawn faithfully, for the hero's demo
 i18n/              Dictionaries (all copy) and the browser-language detector
 lib/document.ts    Fonts, the theme script, and the Pages base path
 ```
