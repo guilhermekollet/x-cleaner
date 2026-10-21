@@ -24,6 +24,10 @@ globalThis.XEngine = (() => {
   // a handful, which X then reports as already gone.
   const SAVE_EVERY = 5;
 
+  // The last few deleted items travel in every snapshot, so the popup can show them going by.
+  const RECENT = 4;
+  const RECENT_TEXT = 140;
+
   let state = null; // live run state
   let control = { paused: false, stopped: false };
 
@@ -83,6 +87,7 @@ globalThis.XEngine = (() => {
       case "ok":
         state.deleted++;
         state.processed.add(item.id);
+        state.recent = [{ id: item.id, kind: item.kind, text: (item.text || "").slice(0, RECENT_TEXT) }, ...state.recent].slice(0, RECENT);
         await remember(item);
         break;
       case "gone":
@@ -405,6 +410,7 @@ globalThis.XEngine = (() => {
       scanning: state.scanning,
       found: state.found,
       scanTotal: state.scanTotal,
+      recent: state.recent,
     };
   }
 
@@ -449,6 +455,7 @@ globalThis.XEngine = (() => {
         fatal: null,
         running: true,
         historyErrors: 0,
+        recent: [],
         scanning: false,
         found: 0,
         scanTotal: null,

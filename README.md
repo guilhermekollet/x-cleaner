@@ -56,6 +56,8 @@ you are signed in to. Nothing is uploaded, and you never hand your account to a 
   batch size and order are remembered.
 - **An optional test run** that stops after 5, so you can confirm it deletes the right things
   first: a switch above the main button, on only until your first run.
+- **See it as it goes**: while it runs, the popup shows the last items it deleted, each sliding in
+  at the top and struck through.
 - **Pause, resume and stop**, and a saved progress list so an interrupted run continues where it
   left off instead of starting over. If the x.com tab is reloaded or closed mid-run, or you stop a
   run, the popup offers **Continue** next time it opens, with the same settings (an archive run asks

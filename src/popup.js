@@ -382,8 +382,39 @@ $("resume").addEventListener("click", async () => {
   $("pause").classList.remove("hidden");
 });
 $("stop").addEventListener("click", () => send("stop"));
+// The items just deleted (newest first, from the snapshot). Rows already shown stay put; new ones
+// are added on top and animate in; ones that dropped off the list animate out, then go.
+function renderRecent(list) {
+  const box = $("recent");
+  $("recentBox").classList.toggle("hidden", !list.length);
+  const key = (r) => r.kind + ":" + r.id;
+  const keys = new Set(list.map(key));
+  for (const el of [...box.children]) {
+    if (keys.has(el.dataset.key) || el.classList.contains("leaving")) continue;
+    el.classList.add("leaving");
+    // Removed when its animation ends, or right away when motion is reduced (no animation runs).
+    el.addEventListener("animationend", () => el.remove(), { once: true });
+    setTimeout(() => el.remove(), 450);
+  }
+  for (const r of [...list].reverse()) {
+    if (box.querySelector(`[data-key="${CSS.escape(key(r))}"]`)) continue;
+    const li = document.createElement("li");
+    li.dataset.key = key(r);
+    const kind = document.createElement("span");
+    kind.className = "kind";
+    kind.textContent = t("kind." + r.kind);
+    const txt = document.createElement("span");
+    txt.className = "txt";
+    txt.textContent = r.text || r.id;
+    li.append(kind, txt);
+    box.prepend(li);
+  }
+}
+
 function backToSetup() {
   lastRender = null;
+  $("recent").replaceChildren();
+  $("recentBox").classList.add("hidden");
   send("dismiss");
   $("progress").classList.add("hidden");
   $("setup").classList.remove("hidden");
@@ -417,6 +448,7 @@ $("continueFull").addEventListener("click", () => {
 });
 
 function enterRunning() {
+  $("recent").replaceChildren(); // a new run starts its own list
   $("setup").classList.add("hidden");
   $("progress").classList.remove("hidden");
   for (const id of ["pause", "stop"]) $(id).classList.remove("hidden");
@@ -488,6 +520,7 @@ function render(s, done) {
   // The history is the only copy of what was deleted; say so if any of it couldn't be saved.
   if (s.historyErrors) msg += " " + t("run.historyErrors", { n: fmt.format(s.historyErrors) });
   $("p-status").textContent = msg;
+  renderRecent(s.recent || []);
   refreshHistoryCount();
 
   const bar = $("p-bar");
