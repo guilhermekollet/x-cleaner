@@ -145,12 +145,19 @@ body {
 }
 .speck { animation: speck 2.6s ease-in-out infinite; }
 
+/* Install tutorial: the ring around the thing to click breathes gently. */
+@keyframes tutorial-ring {
+  0%, 100% { opacity: 0.55; scale: 1; }
+  50% { opacity: 1; scale: 1.06; }
+}
+.tutorial-ring { animation: tutorial-ring 1.8s ease-in-out infinite; }
+
 /* FAQ answers ease in when opened. */
 details[open] > div { animation: rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .rise, .sweep, .speck, details[open] > div { animation: none; }
+  .rise, .sweep, .speck, .tutorial-ring, details[open] > div { animation: none; }
   .reveal-ready [data-reveal] { opacity: 1; transform: none; }
   .press { transition: none; }
 }

@@ -5,6 +5,7 @@ import { HeaderMenu } from "@/components/header-menu";
 import { HistoryDemo } from "@/components/history-demo";
 import { RevealObserver } from "@/components/motion-bits";
 import { XTimelineDemo } from "@/components/x-timeline-demo";
+import { InstallTutorial } from "@/components/install-tutorial";
 
 const REPO_SLUG = "guilhermekollet/x-cleaner";
 const REPO_URL = `https://github.com/${REPO_SLUG}`;
@@ -19,6 +20,21 @@ const card = "rounded-2xl border border-line bg-surface p-6";
 
 // Stars and forks, read once at build time. The site is static, so they are as fresh as the last
 // deploy; if GitHub can't be reached the counts are simply left out.
+// The latest release's version (v0.3.1 → "0.3.1"), read at build time for the install tutorial.
+async function latestVersion(): Promise<string | null> {
+  try {
+    const r = await fetch(`https://api.github.com/repos/${REPO_SLUG}/releases/latest`, {
+      headers: { accept: "application/vnd.github+json" },
+      cache: "force-cache",
+    });
+    if (!r.ok) return null;
+    const j = await r.json();
+    return typeof j.tag_name === "string" ? j.tag_name.replace(/^v/, "") : null;
+  } catch {
+    return null;
+  }
+}
+
 async function repoStats(): Promise<{ stars: number; forks: number } | null> {
   try {
     const r = await fetch(`https://api.github.com/repos/${REPO_SLUG}`, {
@@ -51,6 +67,7 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
   if (!hasLocale(lang)) notFound();
   const d = getDictionary(lang);
   const stats = await repoStats();
+  const version = await latestVersion();
 
   return (
     <>
@@ -179,21 +196,7 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
         <section id="install" className="scroll-mt-20 border-t border-line/60 bg-mist py-20 md:py-28">
           <div className="mx-auto max-w-5xl px-5">
             <SectionHead title={d.install.title} text={d.install.text} />
-            <ol className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {d.install.steps.map((step, i) => (
-                <li key={i} data-reveal style={after(i * 80)} className={card}>
-                  <span className="font-mono text-sm font-semibold text-accent">{String(i + 1).padStart(2, "0")}</span>
-                  <h3 className="mt-2 font-semibold">{step.title}</h3>
-                  <p className="mt-1.5 text-sm leading-relaxed text-fg/60">{step.text}</p>
-                </li>
-              ))}
-            </ol>
-            <div data-reveal className="mt-10 text-center">
-              <a href={DOWNLOAD_URL} className={`${pill} bg-accent text-white`}>
-                <DownloadIcon />
-                {d.download}
-              </a>
-            </div>
+            <InstallTutorial d={d.install} downloadUrl={DOWNLOAD_URL} downloadLabel={d.download} version={version} />
           </div>
         </section>
 
@@ -291,10 +294,7 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
                 >
                   <h3 className="font-semibold">{item.title}</h3>
                   <p className="mt-1.5 flex-1 text-sm leading-relaxed text-fg/60">{item.text}</p>
-                  <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-accent">
-                    {item.cta}
-                    <span className="transition-transform group-hover:translate-x-0.5" aria-hidden="true">→</span>
-                  </span>
+                  <span className="mt-4 text-sm font-semibold text-accent group-hover:underline">{item.cta}</span>
                 </a>
               ))}
             </div>
