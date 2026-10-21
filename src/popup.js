@@ -19,10 +19,12 @@ let polling = null;
 let profilePath = null; // the signed-in profile (/handle), for "View profile" after a test
 let account = null; // the signed-in user id, for the history count
 
-// "Test with 5 first" is a switch beside the confirmation: a test deletes 5 and stops, then offers
-// the rest. It starts on until a test has passed once (remembered in storage), and is always one
-// click away.
-const TESTED_KEY = "xcleaner.tested";
+// "Test with 5 first" is a switch above the main button: a test deletes 5 and stops, then offers
+// the rest. It is on only for someone who has never run the extension; once any run has started
+// (a test or not, remembered in storage) it starts off, through reloads and reinstalls of the
+// page, and stays one click away.
+const RAN_KEY = "xcleaner.ran";
+const TESTED_KEY = "xcleaner.tested"; // set by earlier versions after a passed test
 let testPassed = false; // a test passed in this popup session: the full run continues from it
 let lastRunWasTest = false;
 const isTest = () => $("testFirst").checked;
@@ -73,8 +75,8 @@ async function init() {
   renderText();
   await XI18n.load();
   try {
-    const got = await chrome.storage.local.get([TESTED_KEY, PREFS_KEY]);
-    if (got[TESTED_KEY]) $("testFirst").checked = false;
+    const got = await chrome.storage.local.get([RAN_KEY, TESTED_KEY, PREFS_KEY]);
+    $("testFirst").checked = !got[RAN_KEY] && !got[TESTED_KEY];
     prefs = { ...prefs, ...got[PREFS_KEY] };
   } catch {}
   applyPrefs();
@@ -289,6 +291,7 @@ $("start").addEventListener("click", async () => {
     resume: $("resumePrev").checked || testPassed,
   };
   lastRunWasTest = isTest();
+  chrome.storage.local.set({ [RAN_KEY]: true }).catch(() => {});
   if (config.staged && !(await stageArchive(archiveItems))) return setAccount("out", "run.couldNotStart");
   const res = await send("start", { config });
   if (!res || !res.ok) return setAccount("out", res && res.error === "already-running" ? "run.alreadyRunning" : "run.couldNotStart");
