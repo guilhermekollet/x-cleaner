@@ -134,3 +134,46 @@ test("read() accepts loose tweets.js files too", async () => {
   assert.equal(items.length, 1);
   assert.equal(items[0].id, "5");
 });
+
+test("dedupe keeps a like and a post that share an id", () => {
+  const out = dedupe([
+    { id: "5", kind: "like" },
+    { id: "5", kind: "post" },
+    { id: "5", kind: "post" },
+  ]);
+  assert.deepEqual(out.map((x) => x.kind).sort(), ["like", "post"]);
+});
+
+test("read() finds like-part files too, and says so when the zip has no data files", async () => {
+  const like = "window.YTD.like.part1 = " + JSON.stringify([{ like: { tweetId: "77", fullText: "x" } }]);
+  const zip = buildZip([{ name: "data/like-part1.js", method: 0, text: like }]);
+  const items = await XArchive.read([new File([zip], "archive.zip")]);
+  assert.deepEqual(items.map((i) => [i.kind, i.id]), [["like", "77"]]);
+  const empty = buildZip([{ name: "data/account.js", method: 0, text: "window.YTD.account.part0 = []" }]);
+  await assert.rejects(XArchive.read([new File([empty], "archive.zip")]), /no-tweets-in-zip/);
+});
+
+// The same zip with zip64 end records, as large archives (more than 65,535 files or 4 GB) have:
+// the classic record's fields are maxed out and point to the zip64 one.
+function toZip64(zip) {
+  const eocdAt = zip.length - 22;
+  const count = zip.readUInt16LE(eocdAt + 10);
+  const cdSize = zip.readUInt32LE(eocdAt + 12);
+  const cdOffset = zip.readUInt32LE(eocdAt + 16);
+  const u64 = (n) => { const b = Buffer.alloc(8); b.writeBigUInt64LE(BigInt(n)); return b; };
+  const u32 = (n) => { const b = Buffer.alloc(4); b.writeUInt32LE(n >>> 0); return b; };
+  const u16 = (n) => { const b = Buffer.alloc(2); b.writeUInt16LE(n); return b; };
+  const recAt = eocdAt;
+  const rec = Buffer.concat([u32(0x06064b50), u64(44), u16(45), u16(45), u32(0), u32(0), u64(count), u64(count), u64(cdSize), u64(cdOffset)]);
+  const loc = Buffer.concat([u32(0x07064b50), u32(0), u64(recAt), u32(1)]);
+  const eocd = Buffer.concat([u32(0x06054b50), u16(0), u16(0), u16(0xffff), u16(0xffff), u32(0xffffffff), u32(0xffffffff), u16(0)]);
+  return Buffer.concat([zip.subarray(0, eocdAt), rec, loc, eocd]);
+}
+
+test("read() understands zip64 archives", async () => {
+  const text = tweetsJs([{ id_str: "9", full_text: "big archive", created_at: "a" }]);
+  const zip = toZip64(buildZip([{ name: "data/tweets.js", method: 8, text }]));
+  const items = await XArchive.read([new File([zip], "archive.zip")]);
+  assert.deepEqual(items.map((i) => i.id), ["9"]);
+});
+

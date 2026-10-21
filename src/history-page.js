@@ -339,16 +339,32 @@ $("confirmClear").addEventListener("close", async () => {
 });
 
 // --- Live updates ----------------------------------------------------------------------
-// A run in an x.com tab keeps adding to the history; follow along without losing the search.
+// A run in an x.com tab keeps adding to the history; follow along without losing the search. A
+// long run adds an item every second or two, and reloading means reading and sorting the whole
+// history, so it refreshes at most every few seconds, and not while the tab is in the background.
+const REFRESH_EVERY = 5000;
 let changeTimer = null;
+let stale = false;
+let lastReload = 0;
+function scheduleReload() {
+  stale = true;
+  if (document.hidden || changeTimer) return;
+  changeTimer = setTimeout(() => {
+    changeTimer = null;
+    stale = false;
+    lastReload = Date.now();
+    reload({ keepPage: true });
+  }, Math.max(400, REFRESH_EVERY - (Date.now() - lastReload)));
+}
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden && stale) scheduleReload();
+});
 globalThis.chrome?.storage?.onChanged?.addListener((changes, area) => {
   if (area !== "local") return;
   const keys = Object.keys(changes);
   const ours = keys.some((k) => current && XHistory.touches(current, k));
   const newAccount = keys.some((k) => /^xcleaner\.history\.\d+$/.test(k) && !accountList.some((a) => "xcleaner.history." + a.id === k));
-  if (!ours && !newAccount) return;
-  clearTimeout(changeTimer);
-  changeTimer = setTimeout(() => reload({ keepPage: true }), 400);
+  if (ours || newAccount) scheduleReload();
 });
 
 // --- Start -----------------------------------------------------------------------------

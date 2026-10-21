@@ -116,6 +116,7 @@ async function init() {
 // reload, stopped, failed, or filled its batch, the setup offers to continue it with the same
 // settings, skipping what is already done.
 let savedRun = null; // the record, when there is something to offer
+let runningElsewhere = false; // this account's run is going in another x.com tab
 let savedOffer = null; // { kind, n }
 
 async function loadSavedRun() {
@@ -129,6 +130,11 @@ async function loadSavedRun() {
     if (record?.status === "running" && where && where !== tabId) {
       const st = await chrome.tabs.sendMessage(where, { type: "status" }).catch(() => null);
       activeElsewhere = !!st?.running;
+      // Two runs on one account would undo each other's progress and history: one at a time.
+      if (activeElsewhere) {
+        runningElsewhere = true;
+        setAccount("out", "run.elsewhere");
+      }
     }
     savedOffer = XRun.offer(record, { activeElsewhere });
     if (savedOffer) savedRun = record;
@@ -326,7 +332,7 @@ function refreshStart() {
   document.querySelector(".order-oldest").classList.toggle("hidden", !oldest);
   const types = selectedTypes();
   const anyType = archive ? Object.values(types).some(Boolean) : types.post || types.reply || types.repost;
-  const ready = signedIn && anyType && (!archive || (archiveItems && archiveItems.length));
+  const ready = signedIn && !runningElsewhere && anyType && (!archive || (archiveItems && archiveItems.length));
   $("start").disabled = !ready;
 }
 
@@ -342,7 +348,7 @@ async function stageArchive(items) {
   return true;
 }
 
-const parseKeep = () => ($("f-keep").value || "").split(/[\s,]+/).map((s) => s.trim()).filter(Boolean);
+const parseKeep = () => XRun.parseKeepIds($("f-keep").value);
 
 $("start").addEventListener("click", async () => {
   const types = selectedTypes();
@@ -352,8 +358,7 @@ $("start").addEventListener("click", async () => {
     staged: sourceValue() === "archive",
     types,
     keyword: $("f-keyword").value.trim() || null,
-    since: $("f-since").value ? new Date($("f-since").value).toISOString() : null,
-    until: $("f-until").value ? new Date($("f-until").value + "T23:59:59").toISOString() : null,
+    ...XRun.dateBounds($("f-since").value, $("f-until").value),
     keepIds: parseKeep(),
     speed: speedValue(),
     limit: isTest() ? 5 : batchValue(),
@@ -555,6 +560,8 @@ function render(s, done) {
   // A wait for X comes first: it explains why nothing moves, and for how long.
   else if (s.waitUntil || s.waiting)
     msg = s.scanning ? t("run.scanLimited", { time: waitText(s.waitUntil), n: read }) : t("run.limited", { time: waitText(s.waitUntil) });
+  else if (s.stalled) msg = t(s.stalled === "limited" ? "run.stalledLimited" : "run.stalled");
+  else if (s.retryUntil) msg = t("run.retrying", { time: waitText(s.retryUntil) });
   else if (s.batchUntil) msg = t("run.batch", { time: waitText(s.batchUntil) });
   else if (s.paused) msg = t("run.paused");
   else if (s.scanning) msg = scanKnown ? t("run.scanningOf", { n: read, total: fmt.format(scanOf) }) : t("run.scanning", { n: read });
@@ -566,6 +573,11 @@ function render(s, done) {
   $("p-status").textContent = msg;
   renderRecent(s.recent || []);
   refreshHistoryCount();
+  // Pause and Resume follow the run, which can also pause itself when X keeps failing.
+  if (!done) {
+    $("pause").classList.toggle("hidden", !!s.paused);
+    $("resume").classList.toggle("hidden", !s.paused);
+  }
 
   const bar = $("p-bar");
   // The bar follows the profile read while reading, then the batch (or the total when deleting

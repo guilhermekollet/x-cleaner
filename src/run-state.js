@@ -40,7 +40,28 @@ globalThis.XRun = (() => {
     return { ...record.settings, resume: true, test: false };
   }
 
-  return { key, settingsFrom, offer, continueConfig };
+  // The "Keep these IDs" field: ids, or links to posts (x.com/…/status/123, twitter.com too), in
+  // any mix of spaces, commas and lines. A link's id is the number after /status/.
+  function parseKeepIds(text) {
+    const ids = [];
+    for (const token of String(text || "").split(/[\s,;]+/)) {
+      const id = token.match(/\/status(?:es)?\/(\d+)/)?.[1] || (/^\d+$/.test(token) ? token : null);
+      if (id && !ids.includes(id)) ids.push(id);
+    }
+    return ids;
+  }
+
+  // The date filter, from the two <input type="date"> values ("YYYY-MM-DD"), in the browser's own
+  // time zone: from the start of the first day to the start of the day after the last one.
+  function dateBounds(since, until) {
+    const day = (v, add = 0) => {
+      const [y, m, d] = v.split("-").map(Number);
+      return new Date(y, m - 1, d + add).toISOString();
+    };
+    return { since: since ? day(since) : null, until: until ? day(until, 1) : null };
+  }
+
+  return { key, settingsFrom, offer, continueConfig, parseKeepIds, dateBounds };
 })();
 
 // Allow the pure parts to be imported by the Node test suite. The browser ignores this.
