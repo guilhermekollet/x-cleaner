@@ -45,6 +45,16 @@
     </p>
 
     <main id="setup">
+      <!-- A run that can be picked up again: interrupted by a reload, stopped, failed, or a full
+           batch whose result the popup no longer shows (see run-state.js). -->
+      <div id="resumeBox" class="resume-box hidden">
+        <p id="resumeText"></p>
+        <div class="resume-actions">
+          <button id="resumeGo" type="button" class="btn btn-solid btn-sm"></button>
+          <button id="resumeDismiss" type="button" class="btn btn-ghost btn-sm" data-i18n="resume.dismiss"></button>
+        </div>
+      </div>
+
       <section class="block">
         <h2 data-i18n="source.title"></h2>
         <div class="choices">
@@ -159,6 +169,7 @@
     </section>
 
     <script src="history.js"></script>
+    <script src="run-state.js"></script>
     <script src="archive.js"></script>
     <script src="i18n.js"></script>
     <script src="popup.js"></script>

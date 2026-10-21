@@ -39,6 +39,7 @@
         "src/x-api.js",
         "src/archive.js",
         "src/engine.js",
+        "src/run-state.js",
         "src/content.js"
       ],
       "run_at": "document_idle"

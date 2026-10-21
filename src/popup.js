@@ -61,6 +61,7 @@ function renderText() {
   $("start").textContent = startLabel();
   $("fullBanner").classList.toggle("hidden", !testPassed);
   renderSummary();
+  renderResume();
   refreshHistoryCount();
   if (lastRender) render(lastRender.s, lastRender.done);
 }
@@ -107,8 +108,78 @@ async function init() {
     $("progress").classList.remove("hidden");
     render(st.finished, true);
     exitRunning(st.finished);
-  }
+  } else await loadSavedRun();
 }
+
+// --- Picking up a run ------------------------------------------------------------
+// The x.com tab keeps a record of each run (run-state.js). When it says a run was cut off by a
+// reload, stopped, failed, or filled its batch, the setup offers to continue it with the same
+// settings, skipping what is already done.
+let savedRun = null; // the record, when there is something to offer
+let savedOffer = null; // { kind, n }
+
+async function loadSavedRun() {
+  savedRun = savedOffer = null;
+  if (account) {
+    const key = XRun.key(account);
+    const record = (await chrome.storage.local.get(key).catch(() => ({})))[key];
+    // A record still "running" from another x.com tab may just be running there: ask that tab.
+    let activeElsewhere = false;
+    const where = record?.settings?.tabId;
+    if (record?.status === "running" && where && where !== tabId) {
+      const st = await chrome.tabs.sendMessage(where, { type: "status" }).catch(() => null);
+      activeElsewhere = !!st?.running;
+    }
+    savedOffer = XRun.offer(record, { activeElsewhere });
+    if (savedOffer) savedRun = record;
+  }
+  // In the tab opened to pick the file again, open on the archive picker.
+  if (inTab && savedRun?.settings.source === "archive" && sourceValue() !== "archive") {
+    document.querySelector('input[name="source"][value="archive"]').checked = true;
+    refreshStart();
+  }
+  renderResume();
+}
+
+const needsFile = () => savedRun?.settings.source === "archive" && !(archiveItems && archiveItems.length);
+
+function renderResume() {
+  $("resumeBox").classList.toggle("hidden", !savedOffer);
+  if (!savedOffer) return;
+  const n = new Intl.NumberFormat(XI18n.locale).format(savedOffer.n);
+  $("resumeText").replaceChildren(t("resume." + savedOffer.kind, { n }));
+  // An archive run needs its file again: the picker is in a tab, where the file dialog works.
+  if (needsFile()) {
+    const hint = document.createElement("small");
+    hint.textContent = t(inTab ? "resume.needFileHere" : "resume.needFile");
+    $("resumeText").append(hint);
+  }
+  $("resumeGo").textContent = needsFile() && !inTab ? t("resume.pickFile") : t(savedOffer.kind === "batch" ? "run.next" : "resume.continue");
+  $("resumeGo").disabled = !signedIn || (needsFile() && inTab);
+}
+
+$("resumeGo").addEventListener("click", async () => {
+  if (!savedRun) return;
+  if (needsFile()) return $("pickInTab").click();
+  const config = { ...XRun.continueConfig(savedRun), tabId };
+  if (config.source === "archive") config.staged = true;
+  lastRunWasTest = false;
+  if (config.staged && !(await stageArchive(archiveItems))) return setAccount("out", "run.couldNotStart");
+  const res = await send("start", { config });
+  if (!res || !res.ok) return setAccount("out", res && res.error === "already-running" ? "run.alreadyRunning" : "run.couldNotStart");
+  savedRun = savedOffer = null;
+  renderResume();
+  enterRunning();
+});
+
+$("resumeDismiss").addEventListener("click", async () => {
+  if (savedRun && account) {
+    const record = { ...savedRun, status: "dismissed", updatedAt: Date.now() };
+    await chrome.storage.local.set({ [XRun.key(account)]: record }).catch(() => {});
+  }
+  savedRun = savedOffer = null;
+  renderResume();
+});
 
 function setAccount(state, key) {
   accountKey = key;
@@ -155,6 +226,7 @@ $("archiveFile").addEventListener("change", async () => {
   }
   renderSummary();
   refreshStart();
+  renderResume(); // an archive run waiting for its file can continue now
 });
 
 function renderSummary() {
@@ -287,6 +359,7 @@ $("start").addEventListener("click", async () => {
     limit: isTest() ? 5 : batchValue(),
     test: isTest(),
     order: orderValue(),
+    tabId, // so the saved record knows which tab runs it
     // After a test, the full run skips what the test already removed.
     resume: $("resumePrev").checked || testPassed,
   };
@@ -318,6 +391,7 @@ function backToSetup() {
   for (const id of ["again", "viewProfile", "continueFull", "nextBatch"]) $(id).classList.add("hidden");
   renderText();
   refreshStart();
+  loadSavedRun(); // a stopped run is still offered to continue
 }
 $("again").addEventListener("click", backToSetup);
 

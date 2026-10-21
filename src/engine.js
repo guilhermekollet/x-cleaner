@@ -20,6 +20,10 @@ globalThis.XEngine = (() => {
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const rand = (a, b) => a + Math.random() * (b - a);
 
+  // Progress (the ids done) is saved every few items, so a run cut off by a reload repeats at most
+  // a handful, which X then reports as already gone.
+  const SAVE_EVERY = 5;
+
   let state = null; // live run state
   let control = { paused: false, stopped: false };
 
@@ -171,7 +175,7 @@ globalThis.XEngine = (() => {
       let r = await deleteOne(item, cfg, report);
       while (r === "retry" && !control.stopped) r = await deleteOne(item, cfg, report);
       if (r === "auth") break;
-      if (state.processed.size % 20 === 0) await saveProcessed(state.me, state.processed);
+      if (state.processed.size % SAVE_EVERY === 0) await saveProcessed(state.me, state.processed);
       report();
       await pace(cfg, report);
     }
@@ -372,7 +376,7 @@ globalThis.XEngine = (() => {
             authStop = true;
             break;
           }
-          if (state.processed.size % 20 === 0) await saveProcessed(state.me, state.processed);
+          if (state.processed.size % SAVE_EVERY === 0) await saveProcessed(state.me, state.processed);
           report();
           await pace(cfg, report);
         }

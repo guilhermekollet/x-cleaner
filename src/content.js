@@ -1,7 +1,8 @@
 // Runs inside every x.com tab. It holds the engine and answers messages from the
 // popup: start a run, pause, resume, stop, and report status. The run lives here, in
 // the tab, so it keeps going while the popup is closed — the popup just polls for
-// status and sends controls. Nothing here talks to anything but x.com.
+// status and sends controls. It also keeps a record of the run in storage (XRun) as it goes, so a
+// run cut off by a reload can be continued from the popup. Nothing here talks to anything but x.com.
 (() => {
   let lastSnapshot = { running: false, idle: true };
   let finished = null;
@@ -9,6 +10,9 @@
   let staged = [];
   // The last run's settings, so "next batch" repeats it exactly, whatever the popup shows now.
   let lastConfig = null;
+  let lastSettings = null; // the same, as the popup sent them, for the saved record
+  let record = null; // the saved record of the current run (see run-state.js)
+  let recordKey = null;
 
   function toConfig(raw) {
     return {
@@ -37,26 +41,50 @@
       return { ok: false, error: "bad-config" };
     }
     staged = []; // the run holds its own reference now
-    return run(cfg);
+    return run(cfg, XRun.settingsFrom(raw));
   }
 
   // The next batch: the same settings, skipping what the earlier batches already did.
   function next() {
     if (XEngine.isRunning()) return { ok: false, error: "already-running" };
     if (!lastConfig || lastConfig.test) return { ok: false, error: "no-previous-run" };
-    return run({ ...lastConfig, resume: true });
+    return run({ ...lastConfig, resume: true }, lastSettings);
   }
 
-  function run(cfg) {
+  function run(cfg, settings) {
     finished = null;
     lastConfig = cfg;
+    lastSettings = settings;
+    const me = account();
+    recordKey = me ? XRun.key(me) : null;
+    record = { settings, status: "running", startedAt: Date.now(), deleted: 0, gone: 0, failures: 0, limitReached: false };
+    saveRecord();
     XEngine.start(cfg, (snap) => {
       lastSnapshot = { ...snap, idle: false };
+      // Counts change once per item: keep the record in step, so a reload loses nothing.
+      if (snap.deleted !== record.deleted || snap.gone !== record.gone || snap.failures !== record.failures) {
+        Object.assign(record, { deleted: snap.deleted, gone: snap.gone, failures: snap.failures });
+        saveRecord();
+      }
     }).then((final) => {
       finished = { ...final, idle: false };
       lastSnapshot = finished;
+      Object.assign(record, {
+        status: final.fatal ? "failed" : final.stopped ? "stopped" : "finished",
+        deleted: final.deleted,
+        gone: final.gone,
+        failures: final.failures,
+        limitReached: !!final.limitReached,
+      });
+      saveRecord();
     });
     return { ok: true };
+  }
+
+  function saveRecord() {
+    if (!recordKey || !record) return;
+    record.updatedAt = Date.now();
+    chrome.storage.local.set({ [recordKey]: record }).catch(() => {});
   }
 
   chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
@@ -81,6 +109,12 @@
           if (!XEngine.isRunning()) {
             finished = null;
             lastSnapshot = { running: false, idle: true };
+            // Moving on from a full batch means no next batch. A stopped or failed run is still
+            // offered to continue ("Stopped. You can continue later.").
+            if (record && record.status === "finished") {
+              record.status = "dismissed";
+              saveRecord();
+            }
           }
           sendResponse({ ok: true });
           return;

@@ -276,6 +276,17 @@ input[type="text"]:focus, input[type="date"]:focus { outline: none; border-color
 .btn input[type="file"] { display: none; }
 label.btn { position: relative; }
 
+/* A run to pick up again: one thin-bordered row at the top of the setup. */
+.resume-box {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  margin-bottom: 18px; padding: 8px 8px 8px 14px; border: 1px solid var(--line); border-radius: 14px;
+}
+.resume-box p { margin: 0; font-size: 12.5px; line-height: 1.35; }
+.resume-box small { display: block; color: var(--muted); }
+.resume-actions { display: flex; flex-shrink: 0; gap: 4px; }
+.btn-sm { height: 32px; padding: 0 14px; font-size: 13px; }
+.btn-ghost { background: none; color: var(--muted); }
+
 /* ---------- Running ---------- */
 .run { margin-top: 18px; padding: 18px 16px; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); }
 .counters { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
