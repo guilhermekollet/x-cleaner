@@ -57,7 +57,9 @@ you are signed in to. Nothing is uploaded, and you never hand your account to a 
 - **An optional test run** that stops after 5, so you can confirm it deletes the right things
   first: a switch above the main button, on only until your first run.
 - **Pause, resume and stop**, and a saved progress list so an interrupted run continues where it
-  left off instead of starting over.
+  left off instead of starting over. If the x.com tab is reloaded or closed mid-run, or you stop a
+  run, the popup offers **Continue** next time it opens, with the same settings (an archive run asks
+  for the file again); after a full batch it offers **Next batch**.
 - **A history of what it deleted, and a backup of it.** Every post, reply, repost or like it
   deletes is recorded with its full text, media and links, what it replied to or reposted, the post
   date and the deletion date. Open **History** at the top of the popup to browse it (newest first,
@@ -158,6 +160,7 @@ src/
                        live page, lists timelines, deletes posts and reposts, removes likes
   archive.js           Reads the "Download an archive of your data" file (.zip or loose .js),
                        including a dependency-free ZIP reader
+  run-state.js         The record of the last run, so a run cut off by a reload can be continued
   engine.js            The run: ordering, batching, pacing, rate-limit waits, pause/resume,
                        progress saved for resuming, each deletion added to the history
   history.js           The history of what was deleted: the records, their storage (per account,
