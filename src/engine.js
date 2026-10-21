@@ -24,6 +24,10 @@ globalThis.XEngine = (() => {
   // a handful, which X then reports as already gone.
   const SAVE_EVERY = 5;
 
+  // The last few deleted items travel in every snapshot, so the popup can show them going by.
+  const RECENT = 4;
+  const RECENT_TEXT = 140;
+
   let state = null; // live run state
   let control = { paused: false, stopped: false };
 
@@ -83,6 +87,16 @@ globalThis.XEngine = (() => {
       case "ok":
         state.deleted++;
         state.processed.add(item.id);
+        state.recent = [
+          {
+            id: item.id,
+            kind: item.kind,
+            text: (item.text || "").slice(0, RECENT_TEXT),
+            createdAt: item.createdAt || null,
+            replyTo: item.replyTo?.user || null,
+          },
+          ...state.recent,
+        ].slice(0, RECENT);
         await remember(item);
         break;
       case "gone":
@@ -405,6 +419,11 @@ globalThis.XEngine = (() => {
       scanning: state.scanning,
       found: state.found,
       scanTotal: state.scanTotal,
+      recent: state.recent,
+      // The batch: its size (null for everything at once), its order, and whether it is the test.
+      limit: Number.isFinite(state.limit) ? state.limit : null,
+      order: state.order,
+      test: state.test,
     };
   }
 
@@ -436,6 +455,9 @@ globalThis.XEngine = (() => {
         me,
         handle: cfg.handle || null,
         source: cfg.source,
+        limit: cfg.limit,
+        order: cfg.order === "oldest" ? "oldest" : "newest",
+        test: !!cfg.test,
         deleted: 0,
         gone: 0,
         failures: [],
@@ -449,6 +471,7 @@ globalThis.XEngine = (() => {
         fatal: null,
         running: true,
         historyErrors: 0,
+        recent: [],
         scanning: false,
         found: 0,
         scanTotal: null,

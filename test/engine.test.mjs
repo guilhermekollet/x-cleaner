@@ -237,3 +237,12 @@ test("a finished read with nothing left is read again, for newer posts", async (
   assert.deepEqual(deleted, ["10", "20", "30"]);
   assert.equal(reads.length, 2);
 });
+
+test("snapshots carry the last few deleted items, newest first, not the ones already gone", async () => {
+  const { deleted } = stubs();
+  globalThis.XApi.deletePost = async (id) => (deleted.push(id), { outcome: id === "3" ? "gone" : "ok" });
+  const items = ["1", "2", "3", "4", "5", "6"].map((id) => ({ ...post(id), text: "text " + id }));
+  const final = await XEngine.start({ ...base, source: "archive", archiveItems: items, speed: fast, limit: Infinity, order: "oldest", resume: false });
+  assert.deepEqual(final.recent.map((r) => r.id), ["6", "5", "4", "2"]);
+  assert.deepEqual(final.recent[0], { id: "6", kind: "post", text: "text 6", createdAt: "Mon Mar 04 12:00:00 +0000 2019", replyTo: null });
+});

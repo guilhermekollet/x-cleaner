@@ -289,11 +289,14 @@ label.btn { position: relative; }
 
 /* ---------- Running ---------- */
 .run { margin-top: 18px; padding: 18px 16px; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); }
-.counters { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.counters div { display: flex; flex-direction: column; }
+.counters { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.counters div { display: flex; flex-direction: column; min-width: 0; }
 .counters b { font-size: 26px; line-height: 1.1; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
 .counters span { font-size: 12px; color: var(--muted); }
-.counters .bad.has { color: var(--danger); }
+/* The batch: "120 of 500" over "Batch of 500 · oldest first", on the right. */
+.counters .batch-info { align-items: flex-end; text-align: right; }
+.counters .batch-info b { font-size: 17px; line-height: 1.3; font-weight: 700; }
+.counters .batch-info span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 
 .bar { position: relative; height: 6px; margin-top: 16px; border-radius: 999px; background: var(--fog); overflow: hidden; }
 .bar i { position: absolute; inset: 0 auto 0 0; width: 0; border-radius: 999px; background: var(--fg); transition: width 0.5s; }
@@ -303,6 +306,58 @@ label.btn { position: relative; }
 .bar.done i { width: 100% !important; animation: none; left: 0; }
 
 .run-status { margin: 10px 0 0; font-size: 13px; color: var(--muted); min-height: 19px; }
+
+/* Just deleted: the last few items as posts on x.com (avatar, name, @handle · date, text) in one
+   bordered column. The column has a fixed height (four posts of a fixed height), shown from the
+   start of the run, so the popup never changes size as posts come and go: a new post grows in at
+   the top with a brief red wash and pushes the others down, its text is struck through, and the
+   oldest is pushed out of sight at the bottom. */
+.recent-box { margin-top: 12px; --row: 66px; }
+.recent-title { margin: 0 0 6px; font-size: 11.5px; font-weight: 600; color: var(--muted); }
+.recent {
+  position: relative; list-style: none; margin: 0; padding: 0; overflow: hidden;
+  height: calc(var(--row) * 4 + 3px); border: 1px solid var(--line); border-radius: 14px;
+}
+.recent:empty::before {
+  content: attr(data-empty); position: absolute; inset: 0; display: grid; place-items: center;
+  padding: 0 24px; text-align: center; font-size: 12.5px; color: var(--muted);
+}
+.recent li {
+  display: grid; grid-template-columns: 32px 1fr; gap: 10px; height: var(--row); overflow: hidden;
+  padding: 9px 12px; border-bottom: 1px solid var(--line);
+  animation: recent-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both, recent-wash 1.2s ease-out both;
+}
+.recent .av {
+  display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%;
+  background: var(--fog); color: var(--muted); font-weight: 700; font-size: 13px;
+}
+.recent .body { min-width: 0; }
+.recent .head { display: flex; align-items: center; gap: 4px; min-width: 0; font-size: 13px; line-height: 16px; color: var(--muted); }
+.recent .head b { flex-shrink: 0; max-width: 55%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--fg); }
+.recent .head span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.recent .head .when { flex-shrink: 0; }
+.recent .ctx { font-size: 12px; line-height: 16px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.recent .ctx .at { color: #1d9bf0; }
+/* Two lines of text, or one when a context line ("Replying to", "You reposted") takes the other. */
+.recent .txt {
+  margin: 1px 0 0; font-size: 13px; line-height: 16px; color: var(--muted);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  text-decoration: line-through; text-decoration-color: transparent;
+  animation: recent-strike 0.5s 0.35s ease-out forwards;
+}
+.recent li.has-ctx .txt { -webkit-line-clamp: 1; }
+.recent li.leaving { animation: recent-out 0.4s ease-in forwards; }
+@keyframes recent-in {
+  from { opacity: 0; height: 0; padding-block: 0; }
+}
+@keyframes recent-wash {
+  from { background: color-mix(in srgb, var(--danger) 14%, transparent); }
+  to { background: transparent; }
+}
+@keyframes recent-strike { to { text-decoration-color: currentColor; } }
+@keyframes recent-out { to { opacity: 0; } }
+
+
 .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
 .actions .btn-outline { flex: 1; }
 .actions .grow { flex: 1.6; }

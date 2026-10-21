@@ -382,8 +382,71 @@ $("resume").addEventListener("click", async () => {
   $("pause").classList.remove("hidden");
 });
 $("stop").addEventListener("click", () => send("stop"));
+// The items just deleted (newest first, from the snapshot). Rows already shown stay put; new ones
+// are added on top and animate in; ones that dropped off the list animate out, then go.
+function renderRecent(list) {
+  const box = $("recent");
+  $("recentBox").classList.remove("hidden"); // there from the start of the run, at its full height
+  box.dataset.empty = t("run.recentEmpty");
+  const key = (r) => r.kind + ":" + r.id;
+  const keys = new Set(list.map(key));
+  for (const el of [...box.children]) {
+    if (keys.has(el.dataset.key) || el.classList.contains("leaving")) continue;
+    el.classList.add("leaving");
+    // Removed when its animation ends, or right away when motion is reduced (no animation runs).
+    el.addEventListener("animationend", () => el.remove(), { once: true });
+    setTimeout(() => el.remove(), 450);
+  }
+  for (const r of [...list].reverse()) {
+    if (box.querySelector(`[data-key="${CSS.escape(key(r))}"]`)) continue;
+    box.prepend(recentPost(r, key(r)));
+  }
+}
+
+// One deleted item drawn like a post on x.com: avatar, name, @handle · date, then "Replying to" or
+// "You reposted" when it applies, and the text. Built from text nodes only.
+function recentPost(r, k) {
+  const el = (tag, cls, text) => {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  };
+  // Whose post it is: yours, the reposted author (from "RT @name:"), or unknown for a like.
+  const mine = (profilePath || "").replace(/^\//, "");
+  const rt = r.kind === "repost" ? (r.text || "").match(/^RT @(\w+): ?/) : null;
+  const handle = r.kind === "like" ? "" : rt ? rt[1] : mine;
+  const text = rt ? r.text.slice(rt[0].length) : r.text;
+  const li = el("li");
+  li.dataset.key = k;
+  li.append(el("span", "av", (handle[0] || "?").toUpperCase()));
+  const body = el("div", "body");
+  const head = el("div", "head");
+  head.append(el("b", null, handle || (r.kind === "like" ? t("history.unknownAuthor") : t("run.you"))));
+  if (handle) head.append(el("span", null, "@" + handle));
+  const when = r.createdAt && new Date(r.createdAt);
+  if (when && !Number.isNaN(when.getTime())) {
+    head.append(el("span", null, "·"), el("span", "when", new Intl.DateTimeFormat(XI18n.locale, { dateStyle: "medium" }).format(when)));
+  }
+  if (r.kind === "repost" || r.kind === "like") body.append(el("div", "ctx", t("kind." + r.kind)));
+  if (r.kind === "repost" || r.kind === "like" || (r.kind === "reply" && r.replyTo)) li.classList.add("has-ctx");
+  body.append(head);
+  if (r.kind === "reply" && r.replyTo) {
+    // "Replying to @name", the @name in X's blue.
+    const [before, after = ""] = t("run.replyTo").split("{user}");
+    const ctx = el("div", "ctx", before);
+    ctx.append(el("span", "at", "@" + r.replyTo), after);
+    body.append(ctx);
+  }
+  body.append(el("p", "txt", text || r.id));
+  li.append(body);
+  return li;
+}
+
 function backToSetup() {
   lastRender = null;
+  $("recent").replaceChildren();
+  $("recentBox").classList.add("hidden");
   send("dismiss");
   $("progress").classList.add("hidden");
   $("setup").classList.remove("hidden");
@@ -417,6 +480,7 @@ $("continueFull").addEventListener("click", () => {
 });
 
 function enterRunning() {
+  $("recent").replaceChildren(); // a new run starts its own list
   $("setup").classList.add("hidden");
   $("progress").classList.remove("hidden");
   for (const id of ["pause", "stop"]) $(id).classList.remove("hidden");
@@ -458,9 +522,6 @@ function render(s, done) {
   lastRender = { s, done };
   const fmt = new Intl.NumberFormat(XI18n.lang === "pt" ? "pt-BR" : "en-US");
   $("p-deleted").textContent = fmt.format(s.deleted || 0);
-  $("p-gone").textContent = fmt.format(s.gone || 0);
-  $("p-failures").textContent = fmt.format(s.failures || 0);
-  $("p-failures").classList.toggle("has", (s.failures || 0) > 0);
 
   // Progress counts this run only, so a resumed run starts from zero against what is left.
   const acted = (s.deleted || 0) + (s.gone || 0) + (s.failures || 0);
@@ -469,6 +530,19 @@ function render(s, done) {
   const scanOf = s.scanTotal ? Math.min(s.scanTotal, PROFILE_LIMIT) : 0;
   const scanKnown = s.scanning && scanOf > 0 && (s.found || 0) <= scanOf;
   const read = fmt.format(s.found || 0);
+
+  // The batch: how far this one is ("120 of 500"), its size and its order. Items already gone count
+  // toward the batch, as in the engine.
+  const inBatch = (s.deleted || 0) + (s.gone || 0);
+  const order = t(s.order === "oldest" ? "run.orderOldest" : "run.orderNewest");
+  const isTestRun = s.test || lastRunWasTest;
+  if (s.limit) {
+    $("p-batch").textContent = t("run.progress", { done: fmt.format(Math.min(inBatch, s.limit)), total: fmt.format(s.limit) });
+    $("p-batchLabel").textContent = isTestRun ? t("run.testLabel") : t("run.batchLabel", { n: fmt.format(s.limit), order });
+  } else {
+    $("p-batch").textContent = hasTotal ? t("run.progress", { done: fmt.format(acted), total: fmt.format(s.total) }) : t("run.all");
+    $("p-batchLabel").textContent = t("run.allLabel", { order });
+  }
 
   let msg;
   if (s.fatal) msg = t("run.stoppedWith", { reason: friendlyFatal(s.fatal) });
@@ -485,20 +559,26 @@ function render(s, done) {
   else if (s.paused) msg = t("run.paused");
   else if (s.scanning) msg = scanKnown ? t("run.scanningOf", { n: read, total: fmt.format(scanOf) }) : t("run.scanning", { n: read });
   else msg = hasTotal ? `${t("run.working")} ${t("run.progress", { done: fmt.format(acted), total: fmt.format(s.total) })}` : t("run.working");
+  // Failures aren't a counter any more, but they are never hidden.
+  if (s.failures) msg += " · " + t("run.failuresNote", { n: fmt.format(s.failures) });
   // The history is the only copy of what was deleted; say so if any of it couldn't be saved.
   if (s.historyErrors) msg += " " + t("run.historyErrors", { n: fmt.format(s.historyErrors) });
   $("p-status").textContent = msg;
+  renderRecent(s.recent || []);
   refreshHistoryCount();
 
   const bar = $("p-bar");
-  // A full batch isn't the end: the bar keeps showing how much of the total is done.
-  bar.classList.toggle("done", !!done && !s.fatal && !s.stopped && !batchFull(s));
-  bar.classList.toggle("indeterminate", !done && !hasTotal && !scanKnown);
+  // The bar follows the profile read while reading, then the batch (or the total when deleting
+  // everything at once and the total is known).
+  bar.classList.toggle("done", !!done && !s.fatal && !s.stopped);
+  bar.classList.toggle("indeterminate", !done && !s.limit && !hasTotal && !scanKnown);
   bar.firstElementChild.style.width = scanKnown
     ? `${Math.min(98, ((s.found || 0) / scanOf) * 100)}%`
-    : hasTotal
-      ? `${Math.min(100, (acted / s.total) * 100)}%`
-      : "";
+    : s.limit
+      ? `${Math.min(100, (inBatch / s.limit) * 100)}%`
+      : hasTotal
+        ? `${Math.min(100, (acted / s.total) * 100)}%`
+        : "";
 }
 
 const PROFILE_LIMIT = 3200; // about how far back X lists a profile
