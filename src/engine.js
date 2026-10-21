@@ -124,6 +124,22 @@ globalThis.XEngine = (() => {
     p.savedLen = Math.min(p.savedLen, first);
     p.dirtyFrom = Math.min(p.dirtyFrom ?? Infinity, Math.floor(first / PROGRESS_CHUNK));
   }
+  // What the profile still lists hasn't been deleted, whatever an earlier run concluded about it
+  // (an error, or X answering "not found"): its "done" mark is dropped so it is tried again. Each
+  // item is still tried at most once per run (state.tried), so nothing loops.
+  function stillListed(items) {
+    const keys = [];
+    for (const it of items) {
+      if (state.tried.has(doneKey(it)) || !isDone(it)) continue;
+      keys.push(doneKey(it), it.id); // the id too: progress from before 0.3.3 holds bare ids
+    }
+    if (keys.length) unmarkDone(keys);
+  }
+  // Counts what the profile showed of the chosen kinds, so a run that found nothing can say so.
+  function sawListed(items) {
+    for (const it of items) state.seen.add(doneKey(it));
+  }
+
   async function saveIfDue() {
     if (state.progress.keys.length - state.progress.savedLen >= SAVE_EVERY) await saveProgress(state.me, state.progress);
   }
@@ -153,6 +169,7 @@ globalThis.XEngine = (() => {
   // Deletes one item and folds the result into the counters. Returns the outcome so the caller
   // can react: "retry" (try the same item again), "auth" (stop), or what happened to it.
   async function deleteOne(item, cfg, report) {
+    state.tried.add(doneKey(item));
     let res;
     try {
       res = await act(item);
@@ -368,6 +385,7 @@ globalThis.XEngine = (() => {
     const ready = () => needed.every((tl) => scan.timelines[tl.op]?.done);
     // A finished read with nothing left of the chosen kinds is read again, for newer posts.
     if (ready() && !scan.items.some((it) => cfg.types[it.kind] && !isDone(it))) scan = freshScan();
+    const readNow = !ready();
     if (!ready()) {
       state.scanning = true;
       state.found = scan.items.length;
@@ -381,6 +399,9 @@ globalThis.XEngine = (() => {
       }
       state.scanning = false;
     }
+    const listed = scan.items.filter((it) => matchesFilters(it, cfg));
+    sawListed(listed);
+    if (readNow) stillListed(listed);
     try {
       await runList(orderItems(scan.items, "oldest"), cfg, report);
     } finally {
@@ -503,7 +524,10 @@ globalThis.XEngine = (() => {
           return;
         }
         const mine = res.items.filter((it) => kinds.includes(it.kind));
-        const actionable = mine.filter((it) => matchesFilters(it, cfg) && !isDone(it));
+        const listed = mine.filter((it) => matchesFilters(it, cfg));
+        sawListed(listed);
+        stillListed(listed);
+        const actionable = listed.filter((it) => !isDone(it) && !state.tried.has(doneKey(it)));
 
         if (!actionable.length) {
           // Nothing to delete on this page: go deeper, or finish this timeline.
@@ -562,6 +586,8 @@ globalThis.XEngine = (() => {
       scanning: state.scanning,
       found: state.found,
       scanTotal: state.scanTotal,
+      // Timeline mode: how many of the user's items the profile showed. Zero means it listed none.
+      seen: state.source === "archive" ? null : state.seen.size,
       recent: state.recent,
       // The batch: its size (null for everything at once), its order, and whether it is the test.
       limit: Number.isFinite(state.limit) ? state.limit : null,
@@ -633,6 +659,8 @@ globalThis.XEngine = (() => {
         scanning: false,
         found: 0,
         scanTotal: null,
+        tried: new Set(), // every item attempted in this run
+        seen: new Set(), // the user's items of the chosen kinds the profile listed (timeline mode)
       };
       const report = () => onProgress && onProgress(snapshot());
       try {

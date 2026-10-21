@@ -556,6 +556,7 @@ function render(s, done) {
     msg = t("run.batchDone", { n: fmt.format((s.deleted || 0) + (s.gone || 0)) });
     if (hasTotal && s.total > acted) msg += " " + t("run.left", { n: fmt.format(s.total - acted) });
   } else if (done && s.stopped && s.scanning) msg = t("run.stoppedScan", { n: read });
+  else if (nothingListed(s, done)) msg = t("run.nothingListed");
   else if (done) msg = s.stopped ? t("run.stopped") : t("run.done");
   // A wait for X comes first: it explains why nothing moves, and for how long.
   else if (s.waitUntil || s.waiting)
@@ -582,7 +583,7 @@ function render(s, done) {
   const bar = $("p-bar");
   // The bar follows the profile read while reading, then the batch (or the total when deleting
   // everything at once and the total is known).
-  bar.classList.toggle("done", !!done && !s.fatal && !s.stopped);
+  bar.classList.toggle("done", !!done && !s.fatal && !s.stopped && !nothingListed(s, done));
   bar.classList.toggle("indeterminate", !done && !s.limit && !hasTotal && !scanKnown);
   bar.firstElementChild.style.width = scanKnown
     ? `${Math.min(98, ((s.found || 0) / scanOf) * 100)}%`
@@ -594,6 +595,10 @@ function render(s, done) {
 }
 
 const PROFILE_LIMIT = 3200; // about how far back X lists a profile
+
+// A timeline run that ended without the profile listing a single item of the chosen kinds: say
+// so, and point at the archive, instead of a "Done." that reads as if something happened.
+const nothingListed = (s, done) => !!done && !s.fatal && !s.stopped && s.seen === 0 && (s.deleted || 0) + (s.gone || 0) + (s.failures || 0) === 0;
 
 // A run that stopped because its batch filled up, not because it ran out, was stopped or failed.
 const batchFull = (s) => !!s && !lastRunWasTest && !s.test && !!s.limitReached && !s.fatal && !s.stopped;
