@@ -55,7 +55,7 @@ you are signed in to. Nothing is uploaded, and you never hand your account to a 
   day: a stopped read picks up where it stopped, and later batches start deleting at once. Pace,
   batch size and order are remembered.
 - **An optional test run** that stops after 5, so you can confirm it deletes the right things
-  first: a switch above the main button, on until a test has passed once.
+  first: a switch above the main button, on only until your first run.
 - **Pause, resume and stop**, and a saved progress list so an interrupted run continues where it
   left off instead of starting over.
 - **A history of what it deleted, and a backup of it.** Every post, reply, repost or like it
