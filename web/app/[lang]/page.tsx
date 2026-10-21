@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getDictionary, hasLocale, locales, type Locale } from "@/i18n/dictionaries";
 import { Mark, GithubLogo } from "@/components/mark";
 import { HeaderMenu } from "@/components/header-menu";
+import { HistoryDemo } from "@/components/history-demo";
 import { RevealObserver } from "@/components/motion-bits";
 import { XTimelineDemo } from "@/components/x-timeline-demo";
 
@@ -103,10 +104,10 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
         <section id="what" className="scroll-mt-20 border-t border-line/60 py-20 md:py-28">
           <div className="mx-auto max-w-6xl px-5">
             <SectionHead title={d.what.title} text={d.what.text} />
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-3">
               {d.what.items.map((item, i) => (
-                <div key={i} data-reveal style={after((i % 3) * 80)} className={card}>
-                  <div className="mb-4 grid size-11 place-items-center rounded-full bg-accent-soft text-accent">
+                <div key={i} data-reveal style={after(i * 80)} className={card}>
+                  <div className="mb-4 text-accent">
                     <WhatIcon index={i} />
                   </div>
                   <h3 className="font-semibold">{item.title}</h3>
@@ -132,6 +133,28 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
           </div>
         </section>
 
+        {/* History and backups: the copy the extension keeps of what it deletes. */}
+        <section id="history" className="scroll-mt-20 border-t border-line/60 py-20 md:py-28">
+          <div className="mx-auto max-w-6xl px-5">
+            <SectionHead title={d.history.title} text={d.history.text} />
+            {/* The page itself, large, then what it offers below it. */}
+            <div data-reveal className="flex justify-center">
+              <HistoryDemo dict={d} lang={lang} />
+            </div>
+            <ul className="mx-auto mt-12 grid max-w-[960px] gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {d.history.items.map((item, i) => (
+                <li key={i} data-reveal style={after(i * 80)} className={card}>
+                  <div className="mb-4 text-accent">
+                    <HistoryIcon index={i} />
+                  </div>
+                  <h3 className="font-semibold">{item.title}</h3>
+                  <p className="mt-1.5 text-sm leading-relaxed text-fg/60">{item.text}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
         {/* Privacy */}
         <section id="privacy" className="scroll-mt-20 border-t border-line/60 py-20 md:py-28">
           <div className="mx-auto max-w-6xl px-5">
@@ -139,7 +162,7 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
             <div className="grid gap-4 sm:grid-cols-2">
               {d.privacy.items.map((item, i) => (
                 <div key={i} data-reveal style={after((i % 2) * 80)} className={`${card} flex gap-4`}>
-                  <div className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-full bg-accent-soft text-accent">
+                  <div className="shrink-0 text-accent">
                     <LockIcon />
                   </div>
                   <div>
@@ -180,7 +203,7 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
         <section className="border-t border-line/60 py-20 md:py-28">
           <div className="mx-auto grid max-w-5xl gap-10 px-5 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] md:gap-16">
             <div data-reveal className="md:pt-2">
-              <span className="inline-grid size-11 place-items-center rounded-full bg-warn-soft text-warn">
+              <span className="inline-block text-warn">
                 <LimitIcon index={-1} />
               </span>
               <h2 className={`${sectionTitle} mt-5`}>{d.limits.title}</h2>
@@ -189,7 +212,7 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
             <ul data-reveal style={after(80)} className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface">
               {d.limits.items.map((item, i) => (
                 <li key={i} className="flex gap-4 p-6">
-                  <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-warn-soft text-warn">
+                  <span className="shrink-0 text-warn">
                     <LimitIcon index={i} />
                   </span>
                   <div>
@@ -328,42 +351,58 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
   );
 }
 
+// The icons that mark each point in the sections: one size everywhere, bare (no badge behind them).
+const SECTION_ICON = "size-8";
+
 // One icon per "What it does" card, in the order of `what.items` in the dictionary. Thin outlines
 // in the accent color, like the rest of the site's icons.
 const WHAT_ICONS: React.ReactNode[] = [
-  // Posts, replies and reposts: a trash can.
+  // Everything you posted: a trash can.
   <>
     <path d="M4 7h16" />
     <path d="M9 7V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V7" />
     <path d="M5.8 7l.9 12.2A2 2 0 0 0 8.7 21h6.6a2 2 0 0 0 2-1.8L18.2 7" />
     <path d="M10 11v6M14 11v6" />
   </>,
-  // Two ways to find them: a magnifier over a list.
+  // Recent, or all of it: a magnifier over a list.
   <>
     <path d="M4 6h11M4 10h7M4 14h4" />
     <circle cx="15" cy="15" r="4" />
     <path d="M18 18l3 3" />
   </>,
-  // Filters: a funnel.
-  <path d="M3.5 5h17l-6.5 7.6V19l-4 2v-8.4z" />,
-  // A speed you control: a gauge with its needle.
+  // In batches, at a safe pace: a stack of layers.
   <>
-    <path d="M4.3 17.5a9 9 0 1 1 15.4 0" />
-    <path d="M12 14l4.2-4.7" />
-    <circle cx="12" cy="14" r="1.4" />
-    <path d="M6.5 11.2l1.2.6M12 6.5V8M17.5 11.2l-1.2.6" />
-  </>,
-  // A test run first: a lab flask.
-  <>
-    <path d="M9 3h6M10 3v6.2L4.9 17.9A2 2 0 0 0 6.6 21h10.8a2 2 0 0 0 1.7-3.1L14 9.2V3" />
-    <path d="M7.4 15h9.2" />
-  </>,
-  // Pause, resume, continue: pause bars and a play triangle.
-  <>
-    <path d="M4.5 6v12M8.5 6v12" />
-    <path d="M13 6.3v11.4a.6.6 0 0 0 .9.5l7.3-5.7a.6.6 0 0 0 0-1l-7.3-5.7a.6.6 0 0 0-.9.5z" />
+    <path d="M12 3.5 3.5 8 12 12.5 20.5 8z" />
+    <path d="M3.5 12 12 16.5 20.5 12" />
+    <path d="M3.5 16 12 20.5 20.5 16" />
   </>,
 ];
+
+// One icon per point of the history section, in the order of `history.items`.
+const HISTORY_ICONS: React.ReactNode[] = [
+  // Every deletion, recorded: a clock turning back.
+  <>
+    <path d="M3.5 12a8.5 8.5 0 1 0 2.5-6" />
+    <path d="M3.5 4v4h4M12 7.5V12l3 2" />
+  </>,
+  // Browse it like X: rows of posts.
+  <path d="M4 6h16M4 12h16M4 18h10" />,
+  // Download a backup: an arrow into a tray.
+  <path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14" />,
+  // Yours to keep or clear: a lock.
+  <>
+    <rect x="4.5" y="10.5" width="15" height="10" rx="2.5" />
+    <path d="M8 10.5V7a4 4 0 0 1 8 0v3.5" />
+  </>,
+];
+
+function HistoryIcon({ index }: { index: number }) {
+  return (
+    <svg viewBox="0 0 24 24" className={SECTION_ICON} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {HISTORY_ICONS[index]}
+    </svg>
+  );
+}
 
 // Icons for the limitations, in the order of `limits.items`; index -1 is the section's own mark.
 const LIMIT_ICONS: Record<number, React.ReactNode> = {
@@ -396,7 +435,7 @@ const LIMIT_ICONS: Record<number, React.ReactNode> = {
 
 function LimitIcon({ index }: { index: number }) {
   return (
-    <svg viewBox="0 0 24 24" className="size-[22px]" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className={SECTION_ICON} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       {LIMIT_ICONS[index]}
     </svg>
   );
@@ -404,14 +443,14 @@ function LimitIcon({ index }: { index: number }) {
 
 function WhatIcon({ index }: { index: number }) {
   return (
-    <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className={SECTION_ICON} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       {WHAT_ICONS[index]}
     </svg>
   );
 }
 function LockIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="size-4.5" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className={SECTION_ICON} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <rect x="4.5" y="10.5" width="15" height="10" rx="2.5" />
       <path d="M8 10.5V7a4 4 0 0 1 8 0v3.5" />
     </svg>
@@ -425,7 +464,7 @@ function WarnIcon() {
   );
 }
 // GitHub's star button: the label, then the count once the repository has stars. `compact` is the
-// header's smaller version, which keeps only the icons on narrow screens.
+// header's smaller version: the GitHub mark and the count, without the star and the label.
 function StarButton({ label, stars, lang, compact }: { label: string; stars: number; lang: Locale; compact?: boolean }) {
   return (
     <a
@@ -435,12 +474,15 @@ function StarButton({ label, stars, lang, compact }: { label: string; stars: num
       aria-label={`GitHub — ${label}`}
       className={`press inline-flex ${compact ? "h-10" : "h-11"} items-stretch overflow-hidden rounded-full border border-line text-sm font-semibold whitespace-nowrap`}
     >
-      <span className={`flex items-center gap-2 ${compact ? "px-3 sm:px-4" : "px-4"}`}>
+      <span className={`flex items-center gap-2 ${compact ? "px-3.5" : "px-4"}`}>
         <GithubLogo className="size-4" />
-        <span className={compact ? "hidden sm:inline" : undefined}>
-          <StarIcon />
-        </span>
-        <span className={compact ? "hidden sm:inline" : undefined}>{label}</span>
+        {/* The header's compact version is just the GitHub mark and the count. */}
+        {compact ? null : (
+          <>
+            <StarIcon />
+            <span>{label}</span>
+          </>
+        )}
       </span>
       {stars > 0 ? (
         <span className="flex items-center border-l border-line bg-fg/[0.04] px-3.5 tabular-nums">
