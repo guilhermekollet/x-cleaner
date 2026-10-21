@@ -228,12 +228,6 @@ input[type="text"], input[type="date"] {
 }
 input[type="text"]:focus, input[type="date"]:focus { outline: none; border-color: var(--fg); }
 
-/* Permanent-deletion confirmation, in X's amber. */
-.confirm {
-  margin-top: 18px; padding: 10px 14px; border-radius: 14px;
-  border: 1px solid var(--line);
-}
-.confirm .field { color: var(--fg); }
 .check { display: flex; align-items: flex-start; gap: 9px; cursor: pointer; font-size: 13px; }
 .check input {
   appearance: none; flex-shrink: 0; width: 17px; height: 17px; margin: 1px 0 0;
@@ -244,8 +238,11 @@ input[type="text"]:focus, input[type="date"]:focus { outline: none; border-color
   content: ""; width: 5px; height: 9px; border: solid var(--bg); border-width: 0 2px 2px 0; rotate: 45deg; translate: 0 -1px;
 }
 .check input:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
-/* "Test with 5 first": a switch on the first line of the confirmation. */
-.switch-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px solid var(--line); }
+/* "Test with 5 first": a switch in a thin-bordered row above the main button. */
+.switch-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer;
+  margin-top: 18px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 14px;
+}
 .switch-row b { font-size: 13px; }
 .switch-row input {
   appearance: none; position: relative; flex-shrink: 0; width: 38px; height: 22px; margin: 0; border-radius: 999px;
@@ -305,7 +302,7 @@ label.btn { position: relative; }
   border-radius: 12px; background: var(--fog); font-size: 12.5px;
 }
 .banner svg { width: 16px; height: 16px; stroke-width: 2.2; }
-.banner + .confirm { margin-top: 8px; }
+.banner + .switch-row { margin-top: 8px; }
 
 /* ---------- Footer (the history page; the popup has none) ---------- */
 .foot { margin-top: 16px; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 11.5px; color: var(--muted); }

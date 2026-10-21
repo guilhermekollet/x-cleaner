@@ -230,15 +230,12 @@ function startLabel() {
 }
 
 // --- Enabling Start --------------------------------------------------------------
-for (const id of ["ack", "t-post", "t-reply", "t-repost", "t-like"]) $(id).addEventListener("input", refreshStart);
+for (const id of ["t-post", "t-reply", "t-repost", "t-like"]) $(id).addEventListener("input", refreshStart);
 for (const r of document.querySelectorAll('input[name="source"]')) r.addEventListener("change", refreshStart);
 $("testFirst").addEventListener("change", () => {
   renderText();
   refreshStart();
 });
-
-// One acknowledgement unlocks either run: the test or everything.
-const confirmed = () => $("ack").checked;
 
 function refreshStart() {
   const archive = sourceValue() === "archive";
@@ -255,7 +252,7 @@ function refreshStart() {
   document.querySelector(".order-oldest").classList.toggle("hidden", !oldest);
   const types = selectedTypes();
   const anyType = archive ? Object.values(types).some(Boolean) : types.post || types.reply || types.repost;
-  const ready = signedIn && anyType && confirmed() && (!archive || (archiveItems && archiveItems.length));
+  const ready = signedIn && anyType && (!archive || (archiveItems && archiveItems.length));
   $("start").disabled = !ready;
 }
 
@@ -338,10 +335,8 @@ $("nextBatch").addEventListener("click", async () => {
 $("continueFull").addEventListener("click", () => {
   testPassed = true;
   $("testFirst").checked = false;
-  // The full run is confirmed on its own: the tick from the test doesn't carry over.
-  $("ack").checked = false;
   backToSetup();
-  $("ack").focus();
+  $("start").focus();
 });
 
 function enterRunning() {

@@ -55,7 +55,7 @@ you are signed in to. Nothing is uploaded, and you never hand your account to a 
   day: a stopped read picks up where it stopped, and later batches start deleting at once. Pace,
   batch size and order are remembered.
 - **An optional test run** that stops after 5, so you can confirm it deletes the right things
-  first: a switch beside the confirmation, on until a test has passed once.
+  first: a switch above the main button, on until a test has passed once.
 - **Pause, resume and stop**, and a saved progress list so an interrupted run continues where it
   left off instead of starting over.
 - **A history of what it deleted, and a backup of it.** Every post, reply, repost or like it
@@ -84,11 +84,10 @@ The X Cleaner icon appears in the toolbar.
 1. Open **x.com** in a tab and sign in.
 2. Click the X Cleaner icon.
 3. Choose what to read (recent timeline, or your archive file) and what to delete.
-4. Leave **Test with 5 first** on, tick **I understand deletion is permanent**, and click **Run a
-   test with 5**.
+4. Leave **Test with 5 first** on and click **Run a test with 5**.
 5. Check that the 5 it removed were the right ones, then click **Continue and delete the rest** (or
-   turn **Test with 5 first** off), pick a batch size and an order, tick the confirmation again and
-   click the main button (for example **Delete the 500 oldest**). When a batch is done, click
+   turn **Test with 5 first** off), pick a batch size and an order, and click the main
+   button (for example **Delete the 500 oldest**). When a batch is done, click
    **Next batch** to go on.
 
 Keep the x.com tab open while it runs; you can close the popup, and reopen it to see progress. A full
@@ -164,7 +163,7 @@ src/
   history.js           The history of what was deleted: the records, their storage (per account,
                        in chunks), search, and the JSON and CSV backups
   content.js           Runs on the x.com tab; holds the engine and answers the popup's messages
-  popup.html/.css/.js  The toolbar popup: options, the permanent-deletion confirmation, progress.
+  popup.html/.css/.js  The toolbar popup: options, the test switch, progress.
                        With an archive, it continues in a tab, where the file dialog works
   history.html/.css   The history page, opened in a tab from the popup's History button:
   history-page.js      the list, search, type filter, downloads and clearing
