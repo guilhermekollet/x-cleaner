@@ -17,7 +17,10 @@ globalThis.XEngine = (() => {
   // some replies without "in reply to".
   const TIMELINE_KINDS = ["post", "reply", "repost"];
   const TIMELINES = [
-    { op: "UserTweets", kinds: ["post", "repost"] },
+    // The Posts tab: X's profile page reads UserOriginalsTimeline now, and UserTweets can come back
+    // empty for an account whose Posts tab still lists hundreds.
+    { op: "UserOriginalsTimeline", fallback: "UserTweets", kinds: ["post"] },
+    { op: "UserRepostsTimeline", fallback: "UserTweets", kinds: ["repost"] },
     { op: "UserRepliesTimeline", fallback: "UserTweetsAndReplies", kinds: ["reply"] },
   ];
 

@@ -206,7 +206,7 @@ test("the profile read is kept: the next batch deletes at once, without reading 
   assert.ok(progress.some((s) => s.scanning && s.scanTotal === 4));
   // The deleted ones are pruned from the saved read.
   assert.deepEqual(data["xcleaner.scan.77"].items.map((i) => i.id).sort(), ["80", "90"]);
-  assert.deepEqual(data["xcleaner.scanmeta.77"].done, ["UserTweets"]);
+  assert.deepEqual(data["xcleaner.scanmeta.77"].done, ["UserOriginalsTimeline"]);
 
   await XEngine.start(timelineCfg({ limit: 2, resume: true }));
   assert.deepEqual(deleted, ["60", "70", "80", "90"]);
@@ -306,7 +306,7 @@ test("timeline items count by their own kind, not by the tab they were found on"
   const { data } = stubs();
   const deleted = [];
   const byOp = {
-    UserTweets: [{ ...post("90"), kind: "reply" }],
+    UserOriginalsTimeline: [{ ...post("90"), kind: "reply" }],
     UserRepliesTimeline: [{ ...post("80"), kind: "post" }],
   };
   globalThis.XApi.deletePost = async (id) => (deleted.push(id), { outcome: "ok" });
@@ -334,10 +334,42 @@ test("choosing only posts still leaves replies alone, whichever tab they are on"
   globalThis.XApi.deletePost = async (id) => (deleted.push(id), { outcome: "ok" });
   globalThis.XApi.profilePage = async (op) => ({
     status: 200,
-    items: (op === "UserTweets" ? [post("90"), { ...post("70"), kind: "reply" }] : [{ ...post("80"), kind: "reply" }]).filter((it) => !deleted.includes(it.id)),
+    items: (op === "UserOriginalsTimeline" ? [post("90"), { ...post("70"), kind: "reply" }] : [{ ...post("80"), kind: "reply" }]).filter((it) => !deleted.includes(it.id)),
     bottom: null,
     postCount: null,
   });
   await XEngine.start({ ...base, types: { post: true, reply: false, repost: false, like: false }, source: "timeline", speed: fast, limit: Infinity, order: "newest", resume: false });
   assert.deepEqual(deleted, ["90"]);
+});
+
+test("posts are read where the profile page reads them, and from UserTweets if that route is gone", async () => {
+  // As on a real account: UserTweets comes back empty while the Posts tab lists posts.
+  stubs();
+  const deleted = [];
+  const reads = [];
+  globalThis.XApi.deletePost = async (id) => (deleted.push(id), { outcome: "ok" });
+  globalThis.XApi.profilePage = async (op) => {
+    reads.push(op);
+    const items = op === "UserOriginalsTimeline" ? [post("90"), post("80")] : [];
+    return { status: 200, items: items.filter((it) => !deleted.includes(it.id)), bottom: null, postCount: null };
+  };
+  const cfg = { ...base, types: { post: true, reply: false, repost: false, like: false }, source: "timeline", speed: fast, limit: Infinity, order: "newest", resume: false };
+  await XEngine.start(cfg);
+  assert.deepEqual([...deleted].sort(), ["80", "90"]);
+  assert.ok(!reads.includes("UserTweets"));
+
+  // A bundle without UserOriginalsTimeline falls back to UserTweets.
+  stubs();
+  deleted.length = 0;
+  reads.length = 0;
+  globalThis.XApi.deletePost = async (id) => (deleted.push(id), { outcome: "ok" });
+  globalThis.XApi.profilePage = async (op) => {
+    reads.push(op);
+    if (op === "UserOriginalsTimeline") throw new Error("operation-missing:UserOriginalsTimeline");
+    const items = op === "UserTweets" ? [post("70")] : [];
+    return { status: 200, items: items.filter((it) => !deleted.includes(it.id)), bottom: null, postCount: null };
+  };
+  await XEngine.start(cfg);
+  assert.deepEqual(deleted, ["70"]);
+  assert.ok(reads.includes("UserTweets"));
 });

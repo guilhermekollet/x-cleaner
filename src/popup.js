@@ -295,7 +295,8 @@ function scanReady() {
   if (!scanMeta || Date.now() - scanMeta.at > 24 * 60 * 60 * 1000 || !scanMeta.count) return false;
   const types = selectedTypes();
   const needed = [];
-  if (types.post || types.repost) needed.push("UserTweets");
+  if (types.post) needed.push("UserOriginalsTimeline");
+  if (types.repost) needed.push("UserRepostsTimeline");
   if (types.reply) needed.push("UserRepliesTimeline");
   return needed.every((op) => scanMeta.done.includes(op));
 }

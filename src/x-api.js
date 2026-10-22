@@ -63,6 +63,8 @@ globalThis.XApi = (() => {
     const js = await (await fetch(src)).text();
 
     const wanted = [
+      "UserOriginalsTimeline",
+      "UserRepostsTimeline",
       "UserTweets",
       "UserTweetsAndReplies",
       "UserRepliesTimeline",
@@ -264,7 +266,15 @@ globalThis.XApi = (() => {
     // Returns one page of the given profile timeline, with the user's own items only.
     async profilePage(opName, cursor, count = 100) {
       const me = userId();
-      const variables = { userId: me, count, includePromotedContent: false, withCommunity: true, withVoice: true };
+      // The union of what the profile timelines ask for; each one ignores the variables it doesn't use.
+      const variables = {
+        userId: me,
+        count,
+        includePromotedContent: false,
+        withCommunity: true,
+        withQuickPromoteEligibilityTweetFields: false,
+        withVoice: true,
+      };
       if (cursor) variables.cursor = cursor;
       const res = await timelinePage(opName, variables);
       // `transient`: worth retrying the same page (no answer, a 5xx, or a 200 without data).
