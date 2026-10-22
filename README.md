@@ -38,17 +38,21 @@ you are signed in to. Nothing is uploaded, and you never hand your account to a 
 
 - **Deletes posts, replies and reposts** (undoing reposts), and optionally **removes likes**.
 - **Two ways to find your posts:**
-  - *Recent, no file* — reads your profile timeline. Reaches the most recent posts the site still
-    lists (X stops listing a profile at roughly 3,200 posts).
+  - *Recent, no file* — reads the same Posts, Replies and Reposts lists your profile page shows.
+    Reaches the most recent posts the site still lists (X stops listing a profile at roughly 3,200
+    posts); when the profile lists nothing more to delete, the popup says so and points to the
+    archive.
   - *Archive file* — reads the `.zip` from **Settings → Your account → Download an archive of your
     data**, unpacked in your browser. Reaches **everything**, including posts far older than the
     profile shows.
-- **Filters**: by type, by keyword, by date range, and a keep-list of IDs (for your pinned post, say).
+- **Filters**: by type (a reply in your own thread counts as a post, as X lists it under Posts),
+  by keyword, by date range, and a keep-list of IDs (for your pinned post, say).
 - **Speed you control**: Cautious, Normal or Fast presets, each a trade of pace against the chance X
   slows you down. It reads X's own rate-limit signal and waits automatically when told to.
 - **Holds up over long runs**: if the connection drops or X fails for a moment, it waits and tries
   the same item again, with growing waits; if X keeps failing, it pauses itself and says so,
-  instead of writing items off. When X moves its internal API, it reads the page again and goes on.
+  instead of writing items off. A post an earlier run could not delete is tried again while your
+  profile still lists it. When X moves its internal API, it reads the page again and goes on.
 - **Batches and order**: delete in batches of 100 to 2,500 (or everything at once); a batch stops
   when it fills and offers the next one, which repeats the same settings and skips what is done.
   Delete **newest first** or **oldest first**. Oldest first without the archive reads your whole
@@ -117,7 +121,7 @@ X Cleaner has no server and makes no third-party requests.
 | Your posts and archive | Read in your browser. The archive file is parsed locally and never uploaded. |
 | Requests | Only to `x.com`, with your browser's own session cookie — the same calls the website makes. |
 | Account access | None is granted to anyone. There is no OAuth, no login to a third party, no API key. |
-| Progress | A list of deleted IDs is kept in the browser's local extension storage, so a run can resume. Clear it anytime with **Continue a previous run** left off, or by removing the extension. |
+| Progress | A list of deleted IDs is kept in the browser's local extension storage, so a run can resume. Clear it anytime with **Continue the previous run** left off, or by removing the extension. |
 | History | What was deleted (text, media and link addresses, dates) is kept in the same local storage, per account, so you have a copy. The JSON and CSV backups are made on your computer and saved like any download; nothing is uploaded. Clear it on the History page, or by removing the extension. |
 
 The extension requests the `storage` and `unlimitedStorage` permissions and access to `x.com` /
@@ -153,7 +157,8 @@ Load the folder with **Load unpacked** (see [Install](#install)); after editing 
 reload the extension at `chrome://extensions` and reload the x.com tab.
 
 The tests cover the pieces that are easy to get wrong and run without a browser: the archive
-reader (including the hand-written ZIP extraction), the engine's filtering rules, and the history
+reader (including the hand-written ZIP extraction), the engine's filtering rules, how X's responses
+are read (each post's kind, X's errors), and the history
 (records, storage chunks, search, and the JSON and CSV backups).
 
 ## Project layout
