@@ -1,6 +1,6 @@
 {
   "name": "x-cleaner",
-  "version": "0.3.6",
+  "version": "0.3.7",
   "description": "A browser extension that deletes your own posts, replies and reposts on X, in batches, at a speed you control. Runs entirely in your browser.",
   "private": true,
   "scripts": {
