@@ -244,7 +244,7 @@ test("snapshots carry the last few deleted items, newest first, not the ones alr
   const items = ["1", "2", "3", "4", "5", "6"].map((id) => ({ ...post(id), text: "text " + id }));
   const final = await XEngine.start({ ...base, source: "archive", archiveItems: items, speed: fast, limit: Infinity, order: "oldest", resume: false });
   assert.deepEqual(final.recent.map((r) => r.id), ["6", "5", "4", "2"]);
-  assert.deepEqual(final.recent[0], { id: "6", kind: "post", text: "text 6", createdAt: "Mon Mar 04 12:00:00 +0000 2019", replyTo: null });
+  assert.deepEqual(final.recent[0], { id: "6", kind: "post", text: "text 6", createdAt: "Mon Mar 04 12:00:00 +0000 2019", replyTo: null, author: null });
 });
 
 // --- What the profile still lists hasn't been deleted -------------------------------------------
@@ -372,4 +372,49 @@ test("posts are read where the profile page reads them, and from UserTweets if t
   await XEngine.start(cfg);
   assert.deepEqual(deleted, ["70"]);
   assert.ok(reads.includes("UserTweets"));
+});
+
+test("pages X leaves empty where deleted posts were do not end the read early", async () => {
+  // After a lot has been deleted, the top of the profile comes back as several empty pages.
+  const empty = Array.from({ length: 10 }, () => []);
+  const pages = [...empty, ["90", "80"].map(post)];
+  const { deleted } = stubs({ pages });
+  await XEngine.start(timelineCfg({ order: "newest" }));
+  assert.deepEqual([...deleted].sort(), ["80", "90"]);
+
+  const again = stubs({ pages: [...empty, ["70"].map(post)] });
+  await XEngine.start(timelineCfg({ order: "oldest" }));
+  assert.deepEqual(again.deleted, ["70"]);
+});
+
+test("likes are undone from the Likes tab, without the archive", async () => {
+  stubs();
+  const undone = [];
+  const reads = [];
+  globalThis.XApi.removeLike = async (id) => (undone.push(id), { outcome: "ok" });
+  globalThis.XApi.deletePost = async () => assert.fail("a like must not delete a post");
+  globalThis.XApi.profilePage = async (op) => {
+    reads.push(op);
+    const items = op === "Likes" ? ["50", "40"].map((id) => ({ id, kind: "like", createdAt: null, text: "", url: `https://x.com/someone/status/${id}` })) : [];
+    return { status: 200, items: items.filter((it) => !undone.includes(it.id)), bottom: null, postCount: null };
+  };
+  const final = await XEngine.start({ ...base, types: { post: false, reply: false, repost: false, like: true }, source: "timeline", speed: fast, limit: Infinity, order: "newest", resume: false });
+  assert.deepEqual([...undone].sort(), ["40", "50"]);
+  assert.equal(final.recent[0].author, "someone");
+  assert.deepEqual([...new Set(reads)], ["Likes"]);
+});
+
+test("with a date filter the Likes tab is not read: likes have no date", async () => {
+  stubs();
+  const reads = [];
+  globalThis.XApi.removeLike = async () => assert.fail("no like matches a date filter");
+  globalThis.XApi.profilePage = async (op) => {
+    reads.push(op);
+    return { status: 200, items: op === "Likes" ? [{ id: "50", kind: "like", createdAt: null, text: "", url: null }] : [], bottom: null, postCount: null };
+  };
+  const cfg = { ...base, types: { post: true, reply: false, repost: false, like: true }, source: "timeline", speed: fast, limit: Infinity, resume: false, since: new Date("2020-01-01") };
+  await XEngine.start({ ...cfg, order: "newest" });
+  await XEngine.start({ ...cfg, order: "oldest" });
+  assert.ok(!reads.includes("Likes"));
+  assert.ok(reads.includes("UserOriginalsTimeline"));
 });

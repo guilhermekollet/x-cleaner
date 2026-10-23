@@ -298,6 +298,7 @@ function scanReady() {
   if (types.post) needed.push("UserOriginalsTimeline");
   if (types.repost) needed.push("UserRepostsTimeline");
   if (types.reply) needed.push("UserRepliesTimeline");
+  if (types.like && !$("f-since").value && !$("f-until").value) needed.push("Likes");
   return needed.every((op) => scanMeta.done.includes(op));
 }
 
@@ -311,7 +312,7 @@ function startLabel() {
 }
 
 // --- Enabling Start --------------------------------------------------------------
-for (const id of ["t-post", "t-reply", "t-repost", "t-like"]) $(id).addEventListener("input", refreshStart);
+for (const id of ["t-post", "t-reply", "t-repost", "t-like", "f-since", "f-until"]) $(id).addEventListener("input", refreshStart);
 for (const r of document.querySelectorAll('input[name="source"]')) r.addEventListener("change", refreshStart);
 $("testFirst").addEventListener("change", () => {
   renderText();
@@ -323,7 +324,8 @@ function refreshStart() {
   // In the toolbar popup the archive run is set up in a tab, so the popup keeps only the picker.
   document.body.classList.toggle("archive-mode", archive);
   $("archiveRow").classList.toggle("hidden", !archive);
-  $("likeHint").classList.toggle("hidden", !($("t-like").checked && !archive));
+  const dated = !!($("f-since").value || $("f-until").value);
+  $("likeHint").classList.toggle("hidden", !($("t-like").checked && dated));
   const oldest = orderValue() === "oldest";
   // Oldest first without the archive reaches only what the profile lists; the Recent card says so.
   const hintKey = !oldest ? "source.timelineHint" : scanReady() ? "source.timelineHintReady" : "source.timelineHintOldest";
@@ -332,7 +334,8 @@ function refreshStart() {
   document.querySelector(".order-newest").classList.toggle("hidden", oldest);
   document.querySelector(".order-oldest").classList.toggle("hidden", !oldest);
   const types = selectedTypes();
-  const anyType = archive ? Object.values(types).some(Boolean) : types.post || types.reply || types.repost;
+  // Likes alone under a date filter would delete nothing: they have no date.
+  const anyType = types.post || types.reply || types.repost || (types.like && !dated);
   const ready = signedIn && !runningElsewhere && anyType && (!archive || (archiveItems && archiveItems.length));
   $("start").disabled = !ready;
 }
@@ -353,7 +356,6 @@ const parseKeep = () => XRun.parseKeepIds($("f-keep").value);
 
 $("start").addEventListener("click", async () => {
   const types = selectedTypes();
-  if (types.like && sourceValue() === "timeline") types.like = false; // likes need the archive
   const config = {
     source: sourceValue(),
     staged: sourceValue() === "archive",
@@ -418,10 +420,11 @@ function recentPost(r, k) {
     if (text != null) n.textContent = text;
     return n;
   };
-  // Whose post it is: yours, the reposted author (from "RT @name:"), or unknown for a like.
+  // Whose post it is: yours, the reposted author (from "RT @name:"), or the liked post's author
+  // when its link names them.
   const mine = (profilePath || "").replace(/^\//, "");
   const rt = r.kind === "repost" ? (r.text || "").match(/^RT @(\w+): ?/) : null;
-  const handle = r.kind === "like" ? "" : rt ? rt[1] : mine;
+  const handle = r.kind === "like" ? r.author || "" : rt ? rt[1] : mine;
   const text = rt ? r.text.slice(rt[0].length) : r.text;
   const li = el("li");
   li.dataset.key = k;
