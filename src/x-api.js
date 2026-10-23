@@ -219,6 +219,40 @@ globalThis.XApi = (() => {
     return { items, bottom, postCount };
   }
 
+  // Walks a page of the Likes timeline: each entry is a post the user liked, by anyone. Only the
+  // entries themselves count — a post they quote is not a like — and one X already shows as not
+  // liked is left out. Likes carry no date of their own, as in the archive.
+  function collectLikes(body) {
+    const items = [];
+    const seen = new Set();
+    let bottom = null;
+    (function walk(node) {
+      if (!node || typeof node !== "object") return;
+      if (Array.isArray(node)) return node.forEach(walk);
+      if (node.cursorType === "Bottom" && node.value) bottom = node.value;
+      const result = node.itemContent?.tweet_results?.result;
+      if (result) {
+        const tweet = result.__typename === "TweetWithVisibilityResults" ? result.tweet : result;
+        const legacy = tweet?.legacy;
+        if (tweet?.rest_id && legacy && legacy.favorited !== false && !seen.has(tweet.rest_id)) {
+          seen.add(tweet.rest_id);
+          const user = tweet.core?.user_results?.result;
+          const handle = user?.core?.screen_name || user?.legacy?.screen_name || null;
+          items.push({
+            id: tweet.rest_id,
+            kind: "like",
+            createdAt: null,
+            text: noteText(tweet) || XHistory.details(legacy).text || "",
+            url: handle ? `https://x.com/${handle}/status/${tweet.rest_id}` : null,
+          });
+        }
+        return;
+      }
+      for (const k in node) walk(node[k]);
+    })(body);
+    return { items, bottom, postCount: null };
+  }
+
   function mutate(opName, variables) {
     return withOperation(opName, (op) =>
       fetch(`${api}/${op.queryId}/${opName}`, {
@@ -261,9 +295,11 @@ globalThis.XApi = (() => {
     _classify: classify,
     _hasTimeline: hasTimeline,
     _collect: collect,
+    _collectLikes: collectLikes,
     userId,
     ensureMeta,
-    // Returns one page of the given profile timeline, with the user's own items only.
+    // Returns one page of the given profile timeline, with the user's own items only (or, for
+    // Likes, the posts they liked).
     async profilePage(opName, cursor, count = 100) {
       const me = userId();
       // The union of what the profile timelines ask for; each one ignores the variables it doesn't use.
@@ -280,7 +316,7 @@ globalThis.XApi = (() => {
       // `transient`: worth retrying the same page (no answer, a 5xx, or a 200 without data).
       const transient = res.status === 0 || res.status >= 500 || (res.status === 200 && !hasTimeline(res.body));
       if (res.status !== 200 || transient) return { ...res, items: [], bottom: null, transient };
-      const { items, bottom, postCount } = collect(res.body, me);
+      const { items, bottom, postCount } = opName === "Likes" ? collectLikes(res.body) : collect(res.body, me);
       return { ...res, items, bottom, postCount, transient: false };
     },
     // Deletes one of the user's own posts, replies or reposts. A repost is deleted by its own id

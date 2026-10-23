@@ -38,10 +38,10 @@ you are signed in to. Nothing is uploaded, and you never hand your account to a 
 
 - **Deletes posts, replies and reposts** (undoing reposts), and optionally **removes likes**.
 - **Two ways to find your posts:**
-  - *Recent, no file* — reads the same Posts, Replies and Reposts lists your profile page shows.
-    Reaches the most recent posts the site still lists (X stops listing a profile at roughly 3,200
-    posts); when the profile lists nothing more to delete, the popup says so and points to the
-    archive.
+  - *Recent, no file* — reads the same Posts, Replies, Reposts and Likes lists your profile page
+    shows. Reaches the most recent posts the site still lists (X stops listing a profile at roughly
+    3,200 posts), going past the empty pages X leaves where deleted posts were; when the profile
+    lists nothing more to delete, the popup says so and points to the archive.
   - *Archive file* — reads the `.zip` from **Settings → Your account → Download an archive of your
     data**, unpacked in your browser. Reaches **everything**, including posts far older than the
     profile shows.

@@ -78,7 +78,7 @@ const en = {
     title: "What it does",
     text: "A focused tool for one job: removing what you posted, with guardrails so nothing goes wrong.",
     items: [
-      { title: "Everything you posted", text: "Your posts and replies, and the reposts you made. Likes too, with X's archive file." },
+      { title: "Everything you posted", text: "Your posts and replies, the reposts you made, and your likes, undone one by one." },
       { title: "Recent, or all of it", text: "Your profile for the latest posts, with no file at all, or X's archive to reach every post, however old." },
       { title: "In batches, at a safe pace", text: "100 to 2,500 at a time, newest or oldest first, after an optional test with 5. It follows X's limits and waits when asked." },
     ],
@@ -268,7 +268,7 @@ const pt: typeof en = {
     title: "O que faz",
     text: "Uma ferramenta focada em uma tarefa: remover o que você postou, com travas para nada dar errado.",
     items: [
-      { title: "Tudo o que você postou", text: "Seus posts e respostas, e os reposts que você fez. Curtidas também, com o arquivo do X." },
+      { title: "Tudo o que você postou", text: "Seus posts e respostas, os reposts que você fez e as suas curtidas, desfeitas uma a uma." },
       { title: "Os recentes, ou tudo", text: "O seu perfil para os posts mais recentes, sem arquivo nenhum, ou o arquivo do X para alcançar todos, por mais antigos que sejam." },
       { title: "Em lotes, num ritmo seguro", text: "De 100 a 2.500 por vez, dos mais recentes ou dos mais antigos, depois de um teste opcional com 5. Ele respeita os limites do X e espera quando pedem." },
     ],

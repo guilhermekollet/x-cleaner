@@ -97,3 +97,34 @@ test("collect: kinds as X really sends them — own thread replies are posts, re
   const kinds = Object.fromEntries(XApi._collect(body, "77").items.map((i) => [i.id, i.kind]));
   assert.deepEqual(kinds, { 1: "post", 2: "post", 3: "reply", 4: "reply", 5: "repost" });
 });
+
+test("collectLikes: each liked entry is a like, by anyone; a quoted post and an undone like are not", () => {
+  const entry = (id, legacy, extra = {}) => ({
+    entryId: "tweet-" + id,
+    content: {
+      itemContent: {
+        tweet_results: {
+          result: {
+            __typename: "Tweet",
+            rest_id: id,
+            core: { user_results: { result: { core: { screen_name: "someone" } } } },
+            legacy: { user_id_str: "55", created_at: "Mon Mar 04 12:00:00 +0000 2019", full_text: "liked " + id, favorited: true, ...legacy },
+            ...extra,
+          },
+        },
+      },
+    },
+  });
+  const quoted = { quoted_status_result: { result: { __typename: "Tweet", rest_id: "99", legacy: { user_id_str: "55", favorited: false } } } };
+  const body = {
+    data: {
+      entries: [entry("1", {}), entry("2", { user_id_str: "77" }, quoted), entry("3", { favorited: false }), { content: { cursorType: "Bottom", value: "next" } }],
+    },
+  };
+  const { items, bottom } = XApi._collectLikes(body);
+  assert.deepEqual(items.map((i) => [i.id, i.kind]), [["1", "like"], ["2", "like"]]);
+  assert.equal(items[0].url, "https://x.com/someone/status/1");
+  assert.equal(items[0].text, "liked 1");
+  assert.equal(items[0].createdAt, null);
+  assert.equal(bottom, "next");
+});

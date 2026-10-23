@@ -15,14 +15,23 @@ globalThis.XEngine = (() => {
   // read when one of its kinds is chosen. Its items, though, are judged by their own kind, never
   // dropped for the tab they were found on — X lists your thread replies under Posts, and sends
   // some replies without "in reply to".
-  const TIMELINE_KINDS = ["post", "reply", "repost"];
+  const TIMELINE_KINDS = ["post", "reply", "repost", "like"];
   const TIMELINES = [
     // The Posts tab: X's profile page reads UserOriginalsTimeline now, and UserTweets can come back
     // empty for an account whose Posts tab still lists hundreds.
     { op: "UserOriginalsTimeline", fallback: "UserTweets", kinds: ["post"] },
     { op: "UserRepostsTimeline", fallback: "UserTweets", kinds: ["repost"] },
     { op: "UserRepliesTimeline", fallback: "UserTweetsAndReplies", kinds: ["reply"] },
+    // The Likes tab, which only the account itself can see: each like found there is undone.
+    { op: "Likes", kinds: ["like"] },
   ];
+  // X leaves out what was deleted but still pages over it, so the top of a profile you have been
+  // clearing comes back as pages with nothing on them before the rest. Only this many such pages
+  // in a row mean the end.
+  const EMPTY_PAGES = 25;
+  // Whether a timeline can hold anything this run deletes. Likes have no date, so a date filter
+  // leaves them all out, and the Likes tab is not read at all rather than paged to its end.
+  const readsTimeline = (tl, cfg) => tl.kinds.some((k) => cfg.types[k] && !(k === "like" && (cfg.since || cfg.until)));
 
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const rand = (a, b) => a + Math.random() * (b - a);
@@ -202,6 +211,8 @@ globalThis.XEngine = (() => {
               text: (item.text || "").slice(0, RECENT_TEXT),
               createdAt: item.createdAt || null,
               replyTo: item.replyTo?.user || null,
+              // Whose post a like was, from its link (x.com/<name>/status/<id>).
+              author: item.kind === "like" ? item.url?.match(/^https:\/\/(?:x|twitter)\.com\/(?!i\/)(\w+)\/status\//)?.[1] || null : null,
             },
             ...state.recent,
           ].slice(0, RECENT);
@@ -387,7 +398,7 @@ globalThis.XEngine = (() => {
   }
 
   async function runTimelineOldest(cfg, report) {
-    const needed = TIMELINES.filter((tl) => tl.kinds.some((k) => cfg.types[k]));
+    const needed = TIMELINES.filter((tl) => readsTimeline(tl, cfg));
     let scan = await loadScan(state.me);
     const ready = () => needed.every((tl) => scan.timelines[tl.op]?.done);
     // A finished read with nothing left of the chosen kinds is read again, for newer posts.
@@ -462,7 +473,7 @@ globalThis.XEngine = (() => {
       // The end: no next page, or several pages in a row with nothing new.
       if (added) counting = true;
       emptyPages = added ? 0 : counting ? emptyPages + 1 : 0;
-      if (!res.bottom || res.bottom === pos.cursor || emptyPages >= 5) {
+      if (!res.bottom || res.bottom === pos.cursor || emptyPages >= EMPTY_PAGES) {
         pos.done = true;
         return true;
       }
@@ -514,7 +525,7 @@ globalThis.XEngine = (() => {
   async function runTimeline(cfg, report) {
     const kinds = TIMELINE_KINDS.filter((k) => cfg.types[k]);
     for (const tl of TIMELINES) {
-      if (!tl.kinds.some((k) => cfg.types[k])) continue;
+      if (!readsTimeline(tl, cfg)) continue;
       let op = tl.op;
       let cursor = null;
       let stalls = 0;
@@ -542,7 +553,7 @@ globalThis.XEngine = (() => {
           if (mine.length) {
             cursor = res.bottom;
             stalls = 0;
-          } else if (++stalls < 5) {
+          } else if (++stalls < EMPTY_PAGES) {
             cursor = res.bottom;
           } else {
             break;
